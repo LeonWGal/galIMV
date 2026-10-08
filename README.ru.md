@@ -75,7 +75,7 @@
 
 ### Инструкция по сборке
 ```bash
-git clone https://github.com/your-username/galIMV.git
+git clone https://github.com/LeonWGal/galIMV.git
 cd galIMV
 
 # Конфигурация CMake

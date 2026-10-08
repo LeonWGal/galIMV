@@ -75,7 +75,7 @@ galIMV provides built-in translations for:
 
 ### Build Instructions
 ```bash
-git clone https://github.com/your-username/galIMV.git
+git clone https://github.com/LeonWGal/galIMV.git
 cd galIMV
 
 # Configure CMake
