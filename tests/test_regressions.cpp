@@ -545,8 +545,9 @@ private slots:
         engine.load(QUrl("qrc:/galIMV/qml/main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
+        window->setWidth(1360); window->setHeight(860);
         auto capture = [&](const QString& name) {
-            QTest::qWait(600);
+            QTest::qWait(1200);
             const auto image = window->grabWindow();
             QVERIFY(!image.isNull());
             QVERIFY(image.save(captureDir + "/" + name + ".png"));
@@ -564,8 +565,10 @@ private slots:
         scan(gallery, testGalleryDir());
         QTRY_VERIFY_WITH_TIMEOUT(cardCount(window->contentItem()) > 0, 5000);
         QVERIFY(!empty->isVisible());
+        gallery.selectSingle(0);
+        QTest::qWait(1000);
         capture("gallery");
-        gallery.selectSingle(0); capture("inspector");
+        capture("inspector");
         window->setProperty("width", 1040); window->setProperty("height", 700); capture("compact");
         gallery.selectAll(); capture("batch");
         gallery.clearSelection();

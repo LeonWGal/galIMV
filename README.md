@@ -1,6 +1,10 @@
 # galIMV
 
 <p align="center">
+  <strong>English</strong> | <a href="README.ru.md">Русский</a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Language-C%2B%2B20-00599C?style=flat-square&logo=c%2B%2B" alt="C++20"/>
   <img src="https://img.shields.io/badge/Framework-Qt%206.8%20%7C%20QML-41CD52?style=flat-square&logo=qt" alt="Qt 6.8"/>
   <img src="https://img.shields.io/badge/Build-CMake%203.21+-064F8C?style=flat-square&logo=cmake" alt="CMake"/>
@@ -38,6 +42,8 @@ Desktop image gallery and metadata inspector for AI-generated images. Built with
 - **Tabler Vector Icons**: clean SVG iconography scaled cleanly to any display density.
 - **Persistent Settings**: active theme, accent color, language, and gallery layout persist across restarts.
 
+![galIMV Light Theme](docs/screenshots/galimv_light.png)
+![galIMV Settings and Accent Colors](docs/screenshots/galimv_settings.png)
 ![galIMV Theme and Icons](docs/screenshots/galimv_icons.png)
 
 ### Supported Languages (20 Locales)

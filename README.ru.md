@@ -1,6 +1,10 @@
 # galIMV
 
 <p align="center">
+  <a href="README.md">English</a> | <strong>Русский</strong>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Язык-C%2B%2B20-00599C?style=flat-square&logo=c%2B%2B" alt="C++20"/>
   <img src="https://img.shields.io/badge/Фреймворк-Qt%206.8%20%7C%20QML-41CD52?style=flat-square&logo=qt" alt="Qt 6.8"/>
   <img src="https://img.shields.io/badge/Сборка-CMake%203.21+-064F8C?style=flat-square&logo=cmake" alt="CMake"/>
@@ -38,6 +42,8 @@
 - **Векторные иконки Tabler**: четкая SVG-графика для любых экранов и масштабов DPI.
 - **Сохранение настроек**: выбранная тема, цвет акцента, язык интерфейса и параметры сетки сохраняются между запусками.
 
+![Интерфейс galIMV в светлой теме](docs/screenshots/galimv_light.png)
+![Окно настроек galIMV](docs/screenshots/galimv_settings.png)
 ![Тема оформления и иконки galIMV](docs/screenshots/galimv_icons.png)
 
 ### Поддерживаемые языки (20 локализаций)
