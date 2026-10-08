@@ -1,5 +1,14 @@
 # galIMV
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Язык-C%2B%2B20-00599C?style=flat-square&logo=c%2B%2B" alt="C++20"/>
+  <img src="https://img.shields.io/badge/Фреймворк-Qt%206.8%20%7C%20QML-41CD52?style=flat-square&logo=qt" alt="Qt 6.8"/>
+  <img src="https://img.shields.io/badge/Сборка-CMake%203.21+-064F8C?style=flat-square&logo=cmake" alt="CMake"/>
+  <img src="https://img.shields.io/badge/Дизайн-Lobe-1677ff?style=flat-square" alt="Lobe"/>
+  <img src="https://img.shields.io/badge/Языки-20%20Локализаций-purple?style=flat-square" alt="20 языков"/>
+  <img src="https://img.shields.io/badge/Лицензия-MIT-blue?style=flat-square" alt="Лицензия MIT"/>
+</p>
+
 Десктопная галерея изображений и инспектор метаданных для медиафайлов, созданных нейросетями. Приложение разработано на C++20 и Qt 6.8 (QML). Поддерживает многопоточное кэширование миниатюр, поиск по тегам Danbooru, разбор параметров генерации, тему Lobe и 20 языков интерфейса.
 
 ![Интерфейс галереи и инспектора galIMV](docs/screenshots/galimv_main.png)
