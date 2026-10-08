@@ -10,7 +10,7 @@
 #include <QFutureWatcher>
 #include <QSettings>
 
-inline QSettings imageViewerSettings()
+inline QSettings galIMVSettings()
 {
     const QString file = qEnvironmentVariable("GALIMV_SETTINGS_FILE");
     if (!file.isEmpty()) return QSettings(file, QSettings::IniFormat);

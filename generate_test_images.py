@@ -33,7 +33,7 @@ def create_png(filename, width, height, r, g, b, prompt="", neg_prompt="", steps
     with open(filename, 'wb') as f:
         f.write(sig + b''.join(chunks))
 
-out_dir = r"C:\Users\User\ImageViewer\test_gallery"
+out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_gallery")
 os.makedirs(out_dir, exist_ok=True)
 
 samples = [

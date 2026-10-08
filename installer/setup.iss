@@ -2,7 +2,7 @@
 #define MyAppName "galIMV"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "galIMV Team"
-#define MyAppExeName "ImageViewer.exe"
+#define MyAppExeName "galIMV.exe"
 #define MyLauncherName "galIMV.exe"
 #define MyAppRoot ".."
 

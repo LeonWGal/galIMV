@@ -18,7 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     if (p) *p = L'\0';
 
     std::wstring binDir = std::wstring(exePath) + L"\\bin";
-    std::wstring targetExe = binDir + L"\\ImageViewer.exe";
+    std::wstring targetExe = binDir + L"\\galIMV.exe";
 
     // Build command line: quote executable path and append original command line arguments
     std::wstring cmdLine = L"\"" + targetExe + L"\"";
@@ -63,6 +63,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 0;
     }
 
-    MessageBoxW(NULL, L"Failed to start ImageViewer.exe from bin directory.", L"galIMV", MB_ICONERROR | MB_OK);
+    MessageBoxW(NULL, L"Failed to start galIMV.exe from bin directory.", L"galIMV", MB_ICONERROR | MB_OK);
     return 1;
 }

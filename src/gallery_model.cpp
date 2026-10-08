@@ -150,8 +150,7 @@ GalleryModel::GalleryModel(TagAutocomplete* tagAuto, QObject* parent)
 {
     m_subfolderList << "All";
     m_availableModels << "All";
-
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     m_sortMode = settings.value("library/sortMode", 0).toInt();
     m_selectedModel = settings.value("library/selectedModel", "All").toString();
     m_groupMode = settings.value("library/groupMode", 0).toInt();
@@ -326,7 +325,7 @@ void GalleryModel::setSelectedModel(const QString& model)
     if (m_selectedModel == model) return;
     m_selectedModel = model;
     {
-        QSettings settings = imageViewerSettings();
+        QSettings settings = galIMVSettings();
         settings.setValue("library/selectedModel", model);
     }
     emit selectedModelChanged();
@@ -1843,19 +1842,19 @@ QVariantList GalleryModel::getFilteredTopTags(int category, int limit) const
 
 QString GalleryModel::lastFolder() const
 {
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     return settings.value("library/lastFolder", settings.value("lastFolder")).toString();
 }
 
 void GalleryModel::saveSetting(const QString& key, const QVariant& value)
 {
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     settings.setValue(key, value);
 }
 
 QVariant GalleryModel::loadSetting(const QString& key, const QVariant& defaultValue) const
 {
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     return settings.value(key, defaultValue);
 }
 
@@ -2034,7 +2033,7 @@ QString GalleryModel::findStabilityMatrixModelsDir() const
         QString rel2 = cur.filePath("Models/Stable-diffusion");
         if (QDir(rel2).exists()) return rel2;
     }
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     QString customPath = settings.value("stabilityMatrix/modelsDir").toString();
     if (!customPath.isEmpty() && QDir(customPath).exists()) return customPath;
 
@@ -2108,7 +2107,7 @@ void GalleryModel::loadTranslations(const QString& langCode)
         QString enPath = "locales/en_US.json";
         QFile enFile(enPath);
         if (!enFile.exists()) {
-            enPath = ":/ImageViewer/locales/en_US.json";
+            enPath = ":/galIMV/locales/en_US.json";
             enFile.setFileName(enPath);
         }
         if (enFile.open(QIODevice::ReadOnly)) {
@@ -2123,7 +2122,7 @@ void GalleryModel::loadTranslations(const QString& langCode)
     QString localePath = QString("locales/%1.json").arg(langCode);
     QFile file(localePath);
     if (!file.exists()) {
-        localePath = QString(":/ImageViewer/locales/%1.json").arg(langCode);
+        localePath = QString(":/galIMV/locales/%1.json").arg(langCode);
         file.setFileName(localePath);
     }
 

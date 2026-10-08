@@ -57,9 +57,9 @@ for slug, (name, accent) in palette.items():
     cards.append((name, target.name, accent))
 
 sizes = (16, 24, 32, 48, 64, 128, 256)
-header = """<!doctype html><meta charset='utf-8'><title>ImageViewer · Aurora Lobe variants</title>
+header = """<!doctype html><meta charset='utf-8'><title>galIMV · Aurora Lobe variants</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#09090b;color:#f4f4f5;font:14px 'Segoe UI',sans-serif}main{max-width:1280px;margin:auto;padding:32px}h1{font-size:24px;font-weight:500;margin:0 0 8px}p{color:#a1a1aa;margin:0 0 26px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}.card{padding:16px;border:1px solid #27272a;border-radius:16px;background:#121215}.name{font-weight:600}.hex{margin-top:5px;color:#a1a1aa;font-family:monospace}.backgrounds{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}.stage{height:140px;border-radius:10px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.12)}.stage img{width:112px;height:112px}.light{background:#f4f4f5}.dark{background:#09090b}.color{background:#334155}.warm{background:#f8ead8}.checker{background-color:#d4d4d8;background-image:linear-gradient(45deg,#a1a1aa 25%,transparent 25%),linear-gradient(-45deg,#a1a1aa 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#a1a1aa 75%),linear-gradient(-45deg,transparent 75%,#a1a1aa 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}.label{font-size:11px;color:#a1a1aa;margin-top:5px}.sizes{display:flex;align-items:end;gap:12px;min-height:145px;padding:14px 4px 4px;overflow-x:auto}.size{display:flex;flex-direction:column;align-items:center;gap:5px;color:#a1a1aa;font-size:10px;min-width:30px}.size img{object-fit:contain}</style>
-<main><h1>ImageViewer · Aurora Lobe variants</h1><p>Контраст на пяти фонах и реальные размеры Windows-иконки.</p><div class='grid'>"""
+<main><h1>galIMV · Aurora Lobe variants</h1><p>Контраст на пяти фонах и реальные размеры Windows-иконки.</p><div class='grid'>"""
 
 def render_card(card):
     name, filename, accent = card

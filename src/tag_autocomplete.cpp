@@ -33,7 +33,7 @@ TagAutocomplete::TagAutocomplete(QObject* parent)
     connect(&m_csvWatcher, &QFutureWatcher<bool>::finished, this, [this]() {
         s_isLoadingCsv.store(false);
         if (m_csvWatcher.result()) {
-            QSettings settings = imageViewerSettings();
+            QSettings settings = galIMVSettings();
             settings.setValue("tags/csvPath", m_loadingPath);
             emit csvLoadedChanged();
             emit csvPathChanged();
@@ -93,7 +93,7 @@ QString TagAutocomplete::getCategoryColor(int category)
 
 QString TagAutocomplete::autoDetectCsvPath()
 {
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     QString savedPath = settings.value("tags/csvPath").toString();
     if (!savedPath.isEmpty() && QFile::exists(savedPath)) {
         return savedPath;
@@ -169,7 +169,7 @@ bool TagAutocomplete::loadCsvFile(const QString& filePath)
 
     bool success = loadDanbooruCsv(cleanPath);
     if (success) {
-        QSettings settings = imageViewerSettings();
+        QSettings settings = galIMVSettings();
         settings.setValue("tags/csvPath", cleanPath);
         emit csvLoadedChanged();
         emit csvPathChanged();

@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     app.setApplicationName("galIMV");
     app.setApplicationDisplayName("galIMV");
     app.setOrganizationName("galIMV");
-    app.setWindowIcon(QIcon(":/ImageViewer/resources/app.ico"));
+    app.setWindowIcon(QIcon(":/galIMV/resources/app.ico"));
 
     // Set generous pixmap cache (256 MB) to prevent disk thrashing when scrolling deep libraries
     QPixmapCache::setCacheLimit(256 * 1024);
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     GalleryModel galleryModel(&tagAutocomplete);
 
     // Restore last selected folder from QSettings
-    QSettings settings = imageViewerSettings();
+    QSettings settings = galIMVSettings();
     QString savedFolder = settings.value("library/lastFolder", settings.value("lastFolder")).toString();
     if (!savedFolder.isEmpty() && QDir(savedFolder).exists()) {
         std::cout << "[+] Restoring previous active folder: " << savedFolder.toUtf8().constData() << std::endl;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("tagAuto", &tagAutocomplete);
     engine.rootContext()->setContextProperty("gallery", &galleryModel);
 
-    const QUrl url("qrc:/ImageViewer/qml/main.qml");
+    const QUrl url("qrc:/galIMV/qml/main.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl) {

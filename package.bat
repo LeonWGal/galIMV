@@ -27,9 +27,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [3/5] Building root launchers...
+echo [3/5] Building root launcher...
 windres -i "%ROOT_DIR%resources\app.rc" -o "%ROOT_DIR%resources\launcher_rc.o" --include-dir "%ROOT_DIR%resources"
-g++ -O2 -mwindows -s -static "%ROOT_DIR%src\launcher.cpp" "%ROOT_DIR%resources\launcher_rc.o" -o "%DIST_DIR%\ImageViewer.exe"
 g++ -O2 -mwindows -s -static "%ROOT_DIR%src\launcher.cpp" "%ROOT_DIR%resources\launcher_rc.o" -o "%DIST_DIR%\galIMV.exe"
 del "%ROOT_DIR%resources\launcher_rc.o" 2>nul
 

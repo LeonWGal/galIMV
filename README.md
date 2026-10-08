@@ -1,104 +1,119 @@
-# galIMV (ImageViewer)
+# galIMV
 
-<p align="center">
-  <strong>High-Performance AI Art Gallery & Deep Metadata Inspector</strong><br>
-  <em>Built with C++20, Qt 6.8, and QML featuring Lobe Hub Neo & Aurora Glass styling, multi-threaded thumbnail caching, Danbooru tag search, and 20-language localization.</em>
-</p>
+Desktop image gallery and metadata inspector for AI-generated images. Built with C++20 and Qt 6.8 (QML). Features multi-threaded thumbnail caching, Danbooru tag search, generation parameter parsing, Lobe theme, and 20-language localization.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Language-C%2B%2B20-00599C?style=flat-square&logo=c%2B%2B" alt="C++20"/>
-  <img src="https://img.shields.io/badge/Framework-Qt%206.8%20%7C%20QML-41CD52?style=flat-square&logo=qt" alt="Qt 6.8"/>
-  <img src="https://img.shields.io/badge/Build-CMake%203.20+-064F8C?style=flat-square&logo=cmake" alt="CMake"/>
-  <img src="https://img.shields.io/badge/Design-Lobe%20Neo%20%7C%20Aurora%20Glass-1677ff?style=flat-square" alt="Lobe Neo"/>
-  <img src="https://img.shields.io/badge/Languages-20%20Locales-purple?style=flat-square" alt="20 Locales"/>
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License MIT"/>
-</p>
+![galIMV Gallery and Metadata Inspector](docs/screenshots/galimv_main.png)
 
----
+## Core Capabilities
 
-## 🌟 Overview
+### Multi-Threaded Gallery Engine
+- Asynchronous directory scanning and background thumbnail rendering.
+- Virtualized masonry grid view with smooth scrolling across large image collections.
+- Sorting by date, file name, dimensions, and file size.
+- Grouping by subfolder, generation model, or modification date.
+- Multi-selection for batch review and management.
 
-**galIMV** is a desktop AI gallery and metadata inspector application built for collectors, digital artists, and developers working with generative AI media. Powered by modern C++20 and hardware-accelerated Qt Quick / QML, galIMV smoothly handles massive image folders containing tens of thousands of artworks with zero lag.
+### AI Metadata Extraction
+- **Stable Diffusion (Automatic1111, WebUI Forge, SD.Next)**: positive and negative prompts, seed, sampler, steps, CFG scale, model checkpoint, hash, denoise strength, LoRA tags, and clip skip.
+- **ComfyUI**: recursive graph traversal extracting prompt nodes, checkpoint loaders, and sampler parameters.
+- **NovelAI & Fooocus**: metadata extraction from embedded JSON payloads and PNG text chunks.
+- **Midjourney**: prompt extraction and parameter structuring.
 
----
+### Danbooru Tag Search
+- Fast tag search powered by pre-indexed tag frequency dictionaries.
+- Categorized tag badges (artist, character, copyright, general).
+- Real-time tag-based filtering across folders.
 
-## ✨ Features
+### Interface & Design
+- **Lobe Theme**: dark and light modes with 6 accent colors.
+- **Tabler Vector Icons**: clean SVG iconography scaled cleanly to any display density.
+- **Persistent Settings**: active theme, accent color, language, and gallery layout persist across restarts.
 
-- **🚀 Ultra-Fast C++ Core**: Native multi-threaded thumbnail streaming, asynchronous metadata parsing, and instant memory-mapped cache.
-- **🔍 Deep AI Metadata Parsing**:
-  - **Automatic1111 / SD.Next / WebUI Forge**: Positive & negative prompts, seed, sampler, steps, CFG, LoRA weights, clip skip, denoise, and model hashes.
-  - **ComfyUI**: Parses complex execution graphs, prompt nodes, checkpoints, and latent samplers.
-  - **NovelAI & Fooocus**: Complete parameters extraction from PNG text chunks and EXIF user comments.
-  - **Midjourney**: Prompt and generation settings parser.
-- **🏷️ Danbooru Tag Autocomplete**: Instant search and tag-based filtering powered by pre-indexed tag databases.
-- **🎨 Lobe Hub Neo & Aurora Glass UI**: Modern translucent glass cards, dark/light themes, 7 accent palettes, and responsive multi-column grid.
-- **🌐 20 Languages (i18n)**: English, Русский, 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Français, Español, Português, Italiano, Polski, Türkçe, Українська, Nederlands, Bahasa Indonesia, Tiếng Việt, ไทย, العربية, and हिन्दी.
-- **📦 Windows Packaging**: Ready-to-use Inno Setup installer, standalone portable 7z/zip packages, and lightweight launchers.
+![galIMV Theme and Icons](docs/screenshots/galimv_icons.png)
 
----
+### Supported Languages (20 Locales)
+galIMV provides built-in translations for:
+- English (`en_US`)
+- Russian (`ru_RU`)
+- Simplified Chinese (`zh_CN`)
+- Traditional Chinese (`zh_TW`)
+- Japanese (`ja_JP`)
+- Korean (`ko_KR`)
+- German (`de_DE`)
+- French (`fr_FR`)
+- Spanish (`es_ES`)
+- Portuguese (Brazil) (`pt_BR`)
+- Italian (`it_IT`)
+- Polish (`pl_PL`)
+- Turkish (`tr_TR`)
+- Ukrainian (`uk_UA`)
+- Dutch (`nl_NL`)
+- Indonesian (`id_ID`)
+- Vietnamese (`vi_VN`)
+- Thai (`th_TH`)
+- Arabic (`ar_SA`)
+- Hindi (`hi_IN`)
 
-## 🛠️ Building from Source
+## Building from Source
 
 ### Prerequisites
-- **CMake** 3.20 or newer
-- **C++20 Compiler**: MinGW-w64 (GCC 13+) or MSVC 2022
-- **Qt 6.8+** (with modules: `Core`, `Gui`, `Quick`, `Qml`, `Widgets`, `Svg`, `Concurrent`)
-- *(Optional)* **Inno Setup 6** for generating the installer
-- *(Optional)* **7-Zip** for creating portable archives
+- CMake 3.21 or newer
+- C++20 compiler: MinGW-w64 (GCC 13+) or MSVC 2022
+- Qt 6.8+ (modules: `Core`, `Gui`, `Quick`, `Qml`, `Widgets`, `Svg`, `Concurrent`)
+- Ninja build system
+- *(Optional)* Inno Setup 6 for building the Windows installer
+- *(Optional)* 7-Zip for generating portable release archives
 
 ### Build Instructions
-
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/ImageViewer.git
-cd ImageViewer
+git clone https://github.com/your-username/galIMV.git
+cd galIMV
 
 # Configure CMake
 cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 
-# Build the project
+# Build targets
 cmake --build build --config Release
 
-# Install to dist folder
-cmake --install build --prefix dist-aurora
+# Install binaries and Qt runtime
+cmake --install build --prefix dist
 ```
 
-### Running
-Run directly via the included launcher script:
+### Running the App
+Run directly using the launcher script:
 ```cmd
 run.bat
 ```
 
-### Creating Release Packages
+### Packaging Releases
+Create standalone portable archives and an Inno Setup installer:
 ```cmd
 package.bat
 ```
 
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-ImageViewer/
+galIMV/
 ├── CMakeLists.txt              # CMake build configuration
 ├── package.bat                 # Automated distribution packaging script
-├── run.bat                     # Quick launcher
-├── src/                        # C++ core source files
-│   ├── gallery_model.cpp/h     # Multi-threaded image gallery model
+├── run.bat                     # Application launcher
+├── src/                        # C++ source files
+│   ├── gallery_model.cpp/h     # Multi-threaded image gallery model and caching
 │   ├── metadata_reader.cpp/h   # AI metadata extraction engine
-│   ├── tag_autocomplete.cpp/h  # Fast tag lookup & filtering
+│   ├── tag_autocomplete.cpp/h  # Danbooru tag search and autocomplete
+│   ├── launcher.cpp            # Lightweight Windows launcher
 │   └── main.cpp                # Application entry point
-├── qml/                        # Qt Quick / QML user interface
-│   └── main.qml                # Unified gallery & inspector UI
+├── qml/                        # Qt Quick / QML interface
+│   └── main.qml                # Main gallery and inspector UI
 ├── locales/                    # 20 JSON localization dictionaries
-├── resources/                  # Application icons, SVGs, and theme variants
-├── installer/                  # Inno Setup packaging script (setup.iss)
-├── design/                     # Design mockups, previews, and vector assets
-└── tests/                      # C++ unit & regression test suite
+├── resources/                  # Application icons, SVGs, and resource files
+├── installer/                  # Inno Setup installer script (setup.iss)
+├── docs/
+│   └── screenshots/            # Interface screenshots
+└── tests/                      # Unit and regression test suite
 ```
 
----
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

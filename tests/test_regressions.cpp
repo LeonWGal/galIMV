@@ -78,6 +78,13 @@ class RegressionTests : public QObject {
         }
         bytes.insert(position,chunk); write(path,bytes);
     }
+    QString testGalleryDir() {
+        QString env = qEnvironmentVariable("GALIMV_TEST_GALLERY");
+        if (!env.isEmpty() && QDir(env).exists()) return env;
+        if (QDir("test_gallery").exists()) return QDir("test_gallery").absolutePath();
+        if (QDir("../test_gallery").exists()) return QDir("../test_gallery").absolutePath();
+        return "test_gallery";
+    }
 
 private slots:
     void initTestCase() {
@@ -87,7 +94,7 @@ private slots:
         QQuickStyle::setStyle("Basic");
     }
     void init() {
-        auto settings=imageViewerSettings(); settings.clear(); settings.sync();
+        auto settings=galIMVSettings(); settings.clear(); settings.sync();
     }
     void selectionSurvivesSortingAndDeletion() {
         fixture("selection/a.png"); fixture("selection/z.png");
@@ -306,7 +313,7 @@ private slots:
         engine.rootContext()->setContextProperty("tagAuto",&tags);
         QList<QQmlError> warnings;
         connect(&engine,&QQmlApplicationEngine::warnings,this,[&](const auto& list){ warnings.append(list); });
-        engine.load(QUrl("qrc:/ImageViewer/qml/main.qml"));
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
         QTRY_VERIFY_WITH_TIMEOUT(!gallery.visibleCards().isEmpty(),5000);
@@ -392,7 +399,7 @@ private slots:
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("gallery", &gallery);
         engine.rootContext()->setContextProperty("tagAuto", &tags);
-        engine.load(QUrl("qrc:/ImageViewer/qml/main.qml")); QVERIFY(!engine.rootObjects().isEmpty());
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml")); QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
         auto* viewport = findItem(window->contentItem(), "masonryViewport"); QVERIFY(viewport);
         QTRY_VERIFY(cardCount(window->contentItem()) > 0);
@@ -436,7 +443,7 @@ private slots:
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("gallery",&gallery);
         engine.rootContext()->setContextProperty("tagAuto",&tags);
-        engine.load(QUrl("qrc:/ImageViewer/qml/main.qml"));QVERIFY(!engine.rootObjects().isEmpty());
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!engine.rootObjects().isEmpty());
         auto* root=engine.rootObjects().first();
         root->setProperty("confirmDelete",true);root->setProperty("useRecycleBin",false);
         QVERIFY(QMetaObject::invokeMethod(root,"requestDelete",Q_ARG(QVariant,QVariant(0))));
@@ -454,7 +461,7 @@ private slots:
         engine.rootContext()->setContextProperty("tagAuto", &tags);
         QList<QQmlError> warnings;
         connect(&engine, &QQmlApplicationEngine::warnings, this, [&](const auto& list) { warnings.append(list); });
-        engine.load(QUrl("qrc:/ImageViewer/qml/main.qml"));
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
         window->setWidth(1040); window->setHeight(700);
@@ -535,7 +542,7 @@ private slots:
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("gallery", &gallery);
         engine.rootContext()->setContextProperty("tagAuto", &tags);
-        engine.load(QUrl("qrc:/ImageViewer/qml/main.qml"));
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
         auto capture = [&](const QString& name) {
@@ -554,7 +561,7 @@ private slots:
         window->setProperty("isDarkTheme", true);
         window->setProperty("lobeAccent", QColor("#1677ff"));
         window->setProperty("auroraAnimated", true);
-        scan(gallery, QString::fromUtf8(IMAGEVIEWER_TEST_GALLERY));
+        scan(gallery, testGalleryDir());
         QTRY_VERIFY_WITH_TIMEOUT(cardCount(window->contentItem()) > 0, 5000);
         QVERIFY(!empty->isVisible());
         capture("gallery");
@@ -577,7 +584,7 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(window, "requestDelete", Q_ARG(QVariant, QVariant(0)))); capture("confirmation");
         auto* dialog = window->findChild<QObject*>("deleteImageDialog"); QVERIFY(dialog);
         QVERIFY(QMetaObject::invokeMethod(dialog, "reject"));
-        const auto examples = QDir(QString::fromUtf8(IMAGEVIEWER_TEST_GALLERY)).entryInfoList({"*.png"}, QDir::Files);
+        const auto examples = QDir(testGalleryDir()).entryInfoList({"*.png"}, QDir::Files);
         const auto groupedFolder = storage.filePath("visual-groups");
         for (int i = 0; i < examples.size(); ++i) {
             const auto destination = groupedFolder + (i % 2 ? "/Beta/" : "/Alpha/");
@@ -592,7 +599,7 @@ private slots:
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("gallery", &gallery);
         engine.rootContext()->setContextProperty("tagAuto", &tags);
-        engine.load(QUrl("qrc:/ImageViewer/qml/main.qml")); QVERIFY(!engine.rootObjects().isEmpty());
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml")); QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
         auto* aurora = findItem(window->contentItem(), "auroraBackground"); QVERIFY(aurora);
         auto* animation = window->findChild<QObject*>("auroraAnimation"); QVERIFY(animation);

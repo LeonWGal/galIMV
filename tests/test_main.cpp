@@ -25,10 +25,14 @@ int main(int argc, char *argv[])
                      "au_(artist),1,10,\nteamwork_(sexual),0,10,\n");
     dictionary.close();
     std::cout << "\n==========================================" << std::endl;
-    std::cout << "   RUNNING IMAGE VIEWER FULL SUITE TESTS  " << std::endl;
+    std::cout << "   RUNNING GALIMV FULL SUITE TESTS        " << std::endl;
     std::cout << "==========================================" << std::endl;
 
-    QString testDir = IMAGEVIEWER_TEST_GALLERY;
+    QString testDir = qEnvironmentVariable("GALIMV_TEST_GALLERY");
+    if (testDir.isEmpty() || !QDir(testDir).exists()) {
+        if (QDir("test_gallery").exists()) testDir = QDir("test_gallery").absolutePath();
+        else if (QDir("../test_gallery").exists()) testDir = QDir("../test_gallery").absolutePath();
+    }
     if (!QDir(testDir).exists()) {
         std::cerr << "[-] FAIL: Test directory not found: " << testDir.toUtf8().constData() << std::endl;
         return 1;
