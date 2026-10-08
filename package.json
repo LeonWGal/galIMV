@@ -1,0 +1,13 @@
+{
+  "name": "galimv",
+  "version": "1.0.0",
+  "description": "High-Performance AI Gallery & Metadata Inspector",
+  "private": true,
+  "scripts": {
+    "i18n": "lobe-i18n",
+    "i18n:lint": "lobe-i18n lint"
+  },
+  "devDependencies": {
+    "@lobehub/i18n-cli": "^1.19.0"
+  }
+}

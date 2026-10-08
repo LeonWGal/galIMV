@@ -1,0 +1,62 @@
+# Build directories and CMake outputs
+build/
+build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.ninja
+.ninja_*
+CMakeLists.txt.user*
+
+# Binary & installer distribution outputs
+dist/
+dist-*/
+dist-release/
+dist-portable/
+*.exe
+*.dll
+*.obj
+*.o
+*.a
+*.lib
+*.exp
+*.ilk
+*.pdb
+
+# Qt generated cache and mock files
+*.qmlc
+*.jsc
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+.rcc/
+
+# Packaging & Archives
+*.zip
+*.7z
+*.tar.gz
+*.sha256
+
+# Inno Setup output
+Output/
+
+# Python caches (for scripts)
+__pycache__/
+*.py[cod]
+
+# Node / npm
+node_modules/
+package-lock.json
+
+# IDE / Editor configuration
+.idea/
+.vscode/
+*.swp
+*~
+
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store

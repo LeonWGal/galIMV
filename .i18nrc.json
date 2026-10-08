@@ -1,0 +1,26 @@
+{
+  "entry": "locales/en_US.json",
+  "entryLocale": "en_US",
+  "output": "locales",
+  "outputLocales": [
+    "zh_CN",
+    "ru_RU",
+    "es_ES",
+    "ja_JP",
+    "de_DE",
+    "fr_FR",
+    "pt_BR",
+    "ko_KR",
+    "zh_TW",
+    "pl_PL",
+    "tr_TR",
+    "it_IT",
+    "uk_UA",
+    "id_ID",
+    "vi_VN",
+    "th_TH",
+    "ar_SA",
+    "hi_IN",
+    "nl_NL"
+  ]
+}

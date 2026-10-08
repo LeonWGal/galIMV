@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Два варианта иконки</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #0c101b; color: #f5f7ff; font-family: Arial, sans-serif; }
+  main { width: 1280px; margin: auto; padding: 40px 36px 28px; }
+  .eyebrow { color: #9aa8c0; font-size: 12px; letter-spacing: 3px; margin: 0 0 12px; }
+  h1 { font-size: 28px; font-weight: 500; letter-spacing: -.5px; margin: 0 0 26px; }
+  .variants { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  figure { margin: 0; }
+  .art { display: grid; place-items: center; height: 552px; background: #141a27; border: 1px solid #252e40; border-radius: 24px; }
+  .art img { width: 496px; height: 496px; }
+  figcaption { padding: 20px 4px; display: flex; align-items: center; justify-content: space-between; }
+  h2 { font-size: 18px; font-weight: 500; margin: 0 0 7px; }
+  p { color: #97a5bc; font-size: 13px; margin: 0; }
+  .sizes { display: flex; align-items: center; gap: 12px; }
+  .sizes img { width: 48px; height: 48px; }
+  .sizes img:last-child { width: 24px; height: 24px; }
+  footer { padding-top: 12px; color: #71809b; font-size: 12px; letter-spacing: .2px; }
+  @media (max-width: 1000px) { main { width: 100%; padding: 24px; } .variants { grid-template-columns: 1fr; } .art { height: auto; padding: 10px; } .art img { width: 100%; height: auto; max-width: 528px; } }
+</style>
+<main>
+  <div class="eyebrow">ДВА ВАРИАНТА · SVG</div>
+  <h1>Горы, круг и белая рамка</h1>
+  <div class="variants">
+    <figure>
+      <div class="art"><img src="aurora-glass.svg" alt="Стеклянная иконка с северным сиянием"></div>
+      <figcaption><div><h2>Северное сияние + glass</h2><p>Световые складки, мягкое отражение, тонкая стеклянная грань</p></div><div class="sizes"><img src="aurora-glass.svg" alt="48 пикселей"><img src="aurora-glass.svg" alt="24 пикселя"></div></figcaption>
+    </figure>
+    <figure>
+      <div class="art"><img src="simple.svg" alt="Простая иконка без эффектов"></div>
+      <figcaption><div><h2>Простой зелёный вариант</h2><p>Зелёные оттенки, белая рамка и чёткие снежные вершины</p></div><div class="sizes"><img src="simple.svg" alt="48 пикселей"><img src="simple.svg" alt="24 пикселя"></div></figcaption>
+    </figure>
+  </div>
+  <footer>1024 × 1024 · Всё за белой рамкой прозрачно · Детали адаптируются к малым размерам</footer>
+</main>
+</html>

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora — Monochrome Zinc icon</title>
+  <desc id="desc">Two distinct snowy mountain peaks, a round moon, and folded turquoise and violet northern lights beneath a lightly frosted glass pane. A white rounded square frame bounds the entire image, with transparent corners and a fine inset outline for light backgrounds. Decorative details simplify below 33 pixels.</desc>
+  <style>
+    .frameKeyline { stroke: #1D2B5E; stroke-width: 6; opacity: .48; }
+    @media (max-width: 32px) {
+      .auroraDetail, .glassOptics, .moonBloom { display: none; }
+      .atmosphere { opacity: .65; }
+      .auroraBloom { display: none; }
+      .frameKeyline { stroke-width: 12; opacity: .58; }
+    }
+  </style>
+  <defs>
+    <clipPath id="outerClip"><rect width="1024" height="1024" rx="128"/></clipPath>
+    <clipPath id="sceneClip"><rect x="40" y="40" width="944" height="944" rx="88"/></clipPath>
+    <linearGradient id="sky" x1="90" y1="40" x2="868" y2="1010" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#A9A0BC"/><stop offset="0.42" stop-color="#081931"/><stop offset="1" stop-color="#9289A6"/></linearGradient>
+    <radialGradient id="skyLight" cx="0" cy="0" r="1" gradientTransform="translate(163 328) rotate(27) scale(687 508)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#AFB8DB" stop-opacity="0.31"/><stop offset="0.53" stop-color="#B7A8D6" stop-opacity="0.12"/><stop offset="1" stop-color="#B7A8D6" stop-opacity="0"/></radialGradient>
+    <radialGradient id="violetLight" cx="0" cy="0" r="1" gradientTransform="translate(879 438) rotate(160) scale(422 267)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8D6AD5" stop-opacity="0.29"/><stop offset="1" stop-color="#8E77BD" stop-opacity="0"/></radialGradient>
+    <linearGradient id="curtainLight" x1="286" y1="58" x2="340" y2="486" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#B0BDED" stop-opacity="0"/><stop offset="0.27" stop-color="#B1BDEC" stop-opacity="0.045"/><stop offset="0.56" stop-color="#B0BCEB" stop-opacity="0.24"/><stop offset="0.86" stop-color="#79FFE5" stop-opacity="0.72"/><stop offset="1" stop-color="#A8B6EE" stop-opacity="0.25"/></linearGradient>
+    <linearGradient id="curtainViolet" x1="735" y1="100" x2="830" y2="490" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8EA6FF" stop-opacity="0"/><stop offset="0.36" stop-color="#A8A4FF" stop-opacity="0.07"/><stop offset="0.7" stop-color="#B596FF" stop-opacity="0.37"/><stop offset="0.92" stop-color="#BE8FFF" stop-opacity="0.64"/><stop offset="1" stop-color="#ACB5FF" stop-opacity="0.17"/></linearGradient>
+    <linearGradient id="foldColor" x1="20" y1="340" x2="1030" y2="461" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#C1C9E9" stop-opacity="0.48"/><stop offset="0.13" stop-color="#3AF8D3" stop-opacity="0.98"/><stop offset="0.3" stop-color="#BDC9F5" stop-opacity="0.66"/><stop offset="0.43" stop-color="#8399E8" stop-opacity="0.25"/><stop offset="0.56" stop-color="#8B9FEE" stop-opacity="0.63"/><stop offset="0.7" stop-color="#92C2FF" stop-opacity="0.27"/><stop offset="0.84" stop-color="#AF97FF" stop-opacity="0.7"/><stop offset="1" stop-color="#BD8FFB" stop-opacity="0.38"/></linearGradient>
+    <linearGradient id="moon" x1="722" y1="175" x2="773" y2="321" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000000"/><stop offset="0.57" stop-color="#ECFFFF"/><stop offset="1" stop-color="#B6F2FC"/></linearGradient>
+    <linearGradient id="rearBase" x1="704" y1="556" x2="831" y2="1006" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#764CCB"/><stop offset="0.43" stop-color="#6643AF"/><stop offset="1" stop-color="#6D5898"/></linearGradient>
+    <linearGradient id="rearFacet" x1="737" y1="550" x2="944" y2="870" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D9F6FF"/><stop offset="0.36" stop-color="#C7AFF7"/><stop offset="0.7" stop-color="#6E3AD6"/><stop offset="1" stop-color="#513191"/></linearGradient>
+    <linearGradient id="rearSnow" x1="731" y1="548" x2="859" y2="684" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000000"/><stop offset="0.55" stop-color="#EDF7FF"/><stop offset="1" stop-color="#7336ED"/></linearGradient>
+    <linearGradient id="frontBase" x1="251" y1="606" x2="525" y2="1024" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7F8EC7"/><stop offset="0.39" stop-color="#818DBD"/><stop offset="1" stop-color="#8E7EAC"/></linearGradient>
+    <linearGradient id="frontFacet" x1="351" y1="480" x2="827" y2="954" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D8FBFF"/><stop offset="0.3" stop-color="#7A91E7"/><stop offset="0.61" stop-color="#3B55B6"/><stop offset="1" stop-color="#785EAE"/></linearGradient>
+    <linearGradient id="frontSnow" x1="319" y1="483" x2="513" y2="714" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000000"/><stop offset="0.51" stop-color="#E8FBFF"/><stop offset="1" stop-color="#5877EA"/></linearGradient>
+    <linearGradient id="frame" x1="160" y1="8" x2="880" y2="1030" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000000"/><stop offset="0.38" stop-color="#F3FCFF"/><stop offset="0.72" stop-color="#F4F7FF"/><stop offset="1" stop-color="#B8C6FA"/></linearGradient>
+    <linearGradient id="paneEdge" x1="66" y1="43" x2="907" y2="1012" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D5FFFF" stop-opacity="0.78"/><stop offset="0.3" stop-color="#96AAF5" stop-opacity="0.27"/><stop offset="0.67" stop-color="#8D5CF0" stop-opacity="0.15"/><stop offset="1" stop-color="#D4F8FF" stop-opacity="0.65"/></linearGradient>
+    <radialGradient id="softReflection" cx="0" cy="0" r="1" gradientTransform="translate(157 2) rotate(21) scale(881 474)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F3FFFF" stop-opacity="0.28"/><stop offset="0.31" stop-color="#E2F4FF" stop-opacity="0.14"/><stop offset="0.7" stop-color="#DFF5FF" stop-opacity="0.022"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glassSweep" cx="0" cy="0" r="1" gradientTransform="translate(337 -25) rotate(-23) scale(747 161)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000000" stop-opacity=".14"/><stop offset=".5" stop-color="#F3FFFF" stop-opacity=".065"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
+    <radialGradient id="lowerReflection" cx="0" cy="0" r="1" gradientTransform="translate(985 992) rotate(-144) scale(306 83)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#CEF4FF" stop-opacity="0.16"/><stop offset="0.43" stop-color="#C7E6FF" stop-opacity="0.047"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="frostFade" x1="0" y1="38" x2="0" y2="370" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000000" stop-opacity="0.58"/><stop offset="0.48" stop-color="#000000" stop-opacity="0.16"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>
+    <mask id="frostMask" maskUnits="userSpaceOnUse" x="40" y="40" width="944" height="370"><rect x="40" y="40" width="944" height="370" fill="url(#frostFade)"/></mask>
+    <filter id="curtainBlur" x="-35%" y="-25%" width="170%" height="150%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="atmosphereBlur" x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="foldBlur" x="-20%" y="-40%" width="140%" height="180%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="foldEdgeBlur" x="-20%" y="-30%" width="140%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2.5"/></filter>
+    <filter id="moonBloom" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="frostBlur" x="-25%" y="-30%" width="150%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="11"/></filter>
+    <filter id="edgeBlur" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="4"/></filter>
+    <g id="northernLights" fill="none">
+      <!-- Irregular curtain folds with local brightness; no continuous neon core. -->
+      <path class="auroraBloom" d="M-40 409C68 302 125 278 205 329C268 366 292 439 404 454C469 463 487 430 533 447C603 477 647 512 731 464C798 426 856 404 921 447C973 482 1010 489 1074 477" stroke="url(#foldColor)" stroke-width="72" opacity=".32" filter="url(#atmosphereBlur)"/>
+      <g class="auroraDetail" fill="url(#curtainLight)" filter="url(#curtainBlur)">
+        <path d="M-40 160C49 109 142 30 216 126C278 206 255 350 405 383C471 391 505 312 577 356C657 407 670 407 748 351C840 285 886 362 929 404C976 446 1032 435 1074 390L1074 477C1010 489 973 482 921 447C856 404 798 426 731 464C647 512 603 477 533 447C487 430 469 463 404 454C292 439 268 366 205 329C125 278 68 302-40 409Z" opacity=".28"/>
+        <path d="M73 112C40 166 53 257 93 312L119 304C87 237 115 183 115 76Z" opacity=".28"/>
+        <path d="M139 53C110 132 135 245 169 313L191 319C167 226 188 131 185 61Z" opacity=".43"/>
+        <path d="M217 108C185 219 224 291 251 359L282 391C257 280 282 203 263 135Z" opacity=".32"/>
+        <path d="M324 163C286 259 318 392 362 444L405 453C361 366 379 264 359 181Z" opacity=".36"/>
+        <path d="M467 93C425 244 447 346 478 447L512 441C479 338 501 231 509 123Z" opacity=".27"/>
+        <path d="M591 169C555 300 588 417 625 485L660 486C625 411 642 297 638 180Z" opacity=".24"/>
+      </g>
+      <g class="auroraDetail" fill="url(#curtainViolet)" filter="url(#curtainBlur)">
+        <path d="M687 186C657 273 682 400 705 476L734 462C700 349 730 257 720 178Z" opacity=".2"/>
+        <path d="M770 187C739 280 781 372 819 427L855 426C817 348 826 273 810 197Z" opacity=".32"/>
+        <path d="M869 194C844 297 891 392 927 451L969 473C926 367 925 291 916 230Z" opacity=".25"/>
+      </g>
+      <g class="auroraDetail" stroke="url(#curtainLight)" stroke-linecap="round" filter="url(#foldEdgeBlur)">
+        <path d="M91 113C79 203 90 253 105 306" stroke-width="5" opacity=".34"/>
+        <path d="M143 76C130 164 150 258 171 312" stroke-width="7" opacity=".46"/>
+        <path d="M163 94C154 183 168 259 186 317" stroke-width="4" opacity=".29"/>
+        <path d="M224 139C211 228 239 310 259 370" stroke-width="6" opacity=".4"/>
+        <path d="M326 172C305 282 341 392 373 446" stroke-width="7" opacity=".4"/>
+        <path d="M345 203C325 302 359 404 394 452" stroke-width="4" opacity=".24"/>
+        <path d="M470 140C452 266 469 381 491 444" stroke-width="5" opacity=".34"/>
+        <path d="M596 218C579 309 611 418 637 486" stroke-width="7" opacity=".3"/>
+        <path d="M615 202C601 318 630 427 653 484" stroke-width="4" opacity=".22"/>
+      </g>
+      <g class="auroraDetail" stroke="url(#curtainViolet)" stroke-linecap="round" filter="url(#foldEdgeBlur)">
+        <path d="M775 229C761 304 798 387 831 426" stroke-width="6" opacity=".34"/>
+        <path d="M794 212C780 303 811 386 845 427" stroke-width="4" opacity=".24"/>
+        <path d="M881 248C874 333 914 413 941 459" stroke-width="7" opacity=".27"/>
+      </g>
+      <path d="M-40 409C68 302 125 278 205 329C268 366 292 439 404 454C469 463 487 430 533 447C603 477 647 512 731 464C798 426 856 404 921 447C973 482 1010 489 1074 477" stroke="url(#foldColor)" stroke-width="28" opacity=".58" filter="url(#foldBlur)"/>
+      <path d="M-40 409C68 302 125 278 205 329C268 366 292 439 404 454C469 463 487 430 533 447C603 477 647 512 731 464C798 426 856 404 921 447C973 482 1010 489 1074 477" stroke="url(#foldColor)" stroke-width="7" opacity=".4" filter="url(#foldEdgeBlur)"/>
+    </g>
+  </defs>
+  <g clip-path="url(#outerClip)">
+    <rect width="1024" height="1024" rx="128" fill="#000000"/>
+    <g clip-path="url(#sceneClip)">
+      <rect x="40" y="40" width="944" height="944" fill="url(#sky)"/>
+      <rect x="40" y="40" width="944" height="944" fill="url(#skyLight)"/>
+      <rect x="40" y="40" width="944" height="944" fill="url(#violetLight)"/>
+      <g class="atmosphere"><use href="#northernLights"/></g>
+      <circle class="moonBloom" cx="751" cy="247" r="80" fill="#BDC8F2" opacity=".29" filter="url(#moonBloom)"/>
+      <circle cx="751" cy="247" r="76" fill="url(#moon)"/>
+      <!-- The snow ends near the peaks instead of joining the lower frame. -->
+      <path d="M440 824L719 550Q735 534 751 550L1030 837V1040H440Z" fill="url(#rearBase)"/>
+      <path d="M735 542Q744 543 751 550L1030 837V864C922 834 834 751 790 678C755 625 731 586 735 542Z" fill="url(#rearFacet)"/>
+      <path d="M578 708L719 550Q735 534 751 550L875 678C836 661 805 632 781 609C760 588 748 576 733 576C717 576 702 590 687 608Z" fill="url(#rearSnow)"/>
+      <path d="M8 824L326 484Q342 466 359 483L1010 1026H8Z" fill="url(#frontBase)"/>
+      <path d="M343 474Q351 475 359 483L1010 1026C869 970 752 880 624 748C499 628 404 549 343 474Z" fill="url(#frontFacet)"/>
+      <path d="M24 807L326 484Q342 466 359 483L590 676C519 648 461 605 415 563C390 542 369 529 352 529C333 526 320 540 305 558L24 861Z" fill="url(#frontSnow)"/>
+      <!-- Diffuse reflection and light refraction, without any hard reflection line. -->
+      <g class="glassOptics">
+        <g mask="url(#frostMask)" opacity=".065"><use href="#northernLights" transform="translate(0 6)" filter="url(#frostBlur)"/></g>
+        <rect x="40" y="40" width="944" height="944" fill="url(#softReflection)"/>
+        <rect x="40" y="40" width="944" height="944" fill="url(#glassSweep)"/>
+        <rect x="40" y="40" width="944" height="944" fill="url(#lowerReflection)"/>
+        <rect x="43" y="43" width="938" height="938" rx="85" stroke="url(#paneEdge)" stroke-width="7" opacity=".24" filter="url(#edgeBlur)"/>
+        <rect x="42" y="42" width="940" height="940" rx="86" stroke="url(#paneEdge)" stroke-width="2.5" opacity=".66"/>
+      </g>
+    </g>
+    <rect x="20" y="20" width="984" height="984" rx="108" stroke="url(#frame)" stroke-width="40"/>
+    <rect x="39" y="39" width="946" height="946" rx="89" stroke="#4F70EB" stroke-width="2" opacity=".42"/>
+    <rect class="frameKeyline" x="3" y="3" width="1018" height="1018" rx="125"/>
+  </g>
+</svg>
