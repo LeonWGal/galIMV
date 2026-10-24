@@ -1,134 +1,94 @@
-# galIMV
+<h1 align="center">galIMV Image Metadata Viewer</h1>
+
+<p align="center">Gallery edition · C++ / Qt Quick<br /><strong>English</strong> · <a href="README.ru.md">Русский</a></p>
+
+![galIMV gallery and metadata inspector in the dark theme](docs/screenshots/readme/en/gallery-dark.png)
 
 <p align="center">
-  <strong>English</strong> | <a href="README.ru.md">Русский</a>
+  <img src="docs/assets/badges/cpp.svg" alt="C++20" height="26" />
+  <img src="docs/assets/badges/qt-qml.svg" alt="Qt 6.8 and QML" height="26" />
+  <img src="docs/assets/badges/cmake.svg" alt="CMake 3.21 or later" height="26" />
+  <img src="docs/assets/badges/windows.svg" alt="Windows" height="26" />
+  <img src="docs/assets/badges/locales.svg" alt="20 interface languages" height="26" />
+  <img src="docs/assets/badges/license.svg" alt="MIT license" height="26" />
 </p>
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Language-C%2B%2B20-00599C?style=flat-square&logo=c%2B%2B" alt="C++20"/>
-  <img src="https://img.shields.io/badge/Framework-Qt%206.8%20%7C%20QML-41CD52?style=flat-square&logo=qt" alt="Qt 6.8"/>
-  <img src="https://img.shields.io/badge/Build-CMake%203.21+-064F8C?style=flat-square&logo=cmake" alt="CMake"/>
-  <img src="https://img.shields.io/badge/Design-Lobe-1677ff?style=flat-square" alt="Lobe"/>
-  <img src="https://img.shields.io/badge/Languages-20%20Locales-purple?style=flat-square" alt="20 Locales"/>
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License MIT"/>
+  <img src="docs/assets/badges/a1111.svg" alt="Automatic1111 parameter text" height="26" />
+  <img src="docs/assets/badges/comfyui.svg" alt="ComfyUI graphs" height="26" />
+  <img src="docs/assets/badges/novelai.svg" alt="NovelAI JSON" height="26" />
 </p>
 
-Desktop image gallery and metadata inspector for AI-generated images. Built with C++20 and Qt 6.8 (QML). Features multi-threaded thumbnail caching, Danbooru tag search, generation parameter parsing, Lobe theme, and 20-language localization.
+Explore AI image collections and read the prompts and generation metadata stored in your files. Open a folder, narrow down the gallery, and inspect an image without leaving the grid.
 
-![galIMV Gallery and Metadata Inspector](docs/screenshots/galimv_main.png)
+## Start with a collection
 
-## Core Capabilities
+Download the [Windows x64 release](https://github.com/LeonWGal/galIMV/releases/tag/v1.2.0). Choose the installer or extract the portable ZIP. For source code, see [Build from source](#build-from-source).
 
-### Multi-Threaded Gallery Engine
-- Asynchronous directory scanning and background thumbnail rendering.
-- Virtualized masonry grid view with smooth scrolling across large image collections.
-- Sorting by date, file name, dimensions, and file size.
-- Grouping by subfolder, generation model, or modification date.
-- Multi-selection for batch review and management.
+1. Open `bin/galIMV.exe` from the prepared build, or start `run.bat` from the project folder.
+2. Select **Open** (`Ctrl+O`) and choose an image folder. The gallery scans it in the background.
+3. Select a thumbnail. Its preview, prompt, and available generation details appear in the inspector.
 
-### AI Metadata Extraction
-- **Stable Diffusion (Automatic1111, WebUI Forge, SD.Next)**: positive and negative prompts, seed, sampler, steps, CFG scale, model checkpoint, hash, denoise strength, LoRA tags, and clip skip.
-- **ComfyUI**: recursive graph traversal extracting prompt nodes, checkpoint loaders, and sampler parameters.
-- **NovelAI & Fooocus**: metadata extraction from embedded JSON payloads and PNG text chunks.
-- **Midjourney**: prompt extraction and parameter structuring.
+## Find the image you need
 
-### Danbooru Tag Search
-- Fast tag search powered by pre-indexed tag frequency dictionaries.
-- Categorized tag badges (artist, character, copyright, general).
-- Real-time tag-based filtering across folders.
+Use the workspace to:
 
-### Interface & Design
-- **Lobe Theme**: dark and light modes with 6 accent colors.
-- **Tabler Vector Icons**: clean SVG iconography scaled cleanly to any display density.
-- **Persistent Settings**: active theme, accent color, language, and gallery layout persist across restarts.
+- **Browse a collection.** Use the masonry gallery, sorting, grouping, and multiple selection.
+- **Filter with tags.** Search prompts and tags; use tag categories and the exclude field to narrow the results.
+- **Keep context.** Resize or hide the inspector while continuing to browse the grid.
 
-![galIMV Light Theme](docs/screenshots/galimv_light.png)
-![galIMV Settings and Accent Colors](docs/screenshots/galimv_settings.png)
-![galIMV Theme and Icons](docs/screenshots/galimv_icons.png)
+## Read the generation details
 
-### Supported Languages (20 Locales)
-galIMV provides built-in translations for:
-- English (`en_US`)
-- Russian (`ru_RU`)
-- Simplified Chinese (`zh_CN`)
-- Traditional Chinese (`zh_TW`)
-- Japanese (`ja_JP`)
-- Korean (`ko_KR`)
-- German (`de_DE`)
-- French (`fr_FR`)
-- Spanish (`es_ES`)
-- Portuguese (Brazil) (`pt_BR`)
-- Italian (`it_IT`)
-- Polish (`pl_PL`)
-- Turkish (`tr_TR`)
-- Ukrainian (`uk_UA`)
-- Dutch (`nl_NL`)
-- Indonesian (`id_ID`)
-- Vietnamese (`vi_VN`)
-- Thai (`th_TH`)
-- Arabic (`ar_SA`)
-- Hindi (`hi_IN`)
+Inspect positive and negative prompts, model names, image dimensions, and the generation parameters present in the file. Copy prompts from the inspector.
 
-## Building from Source
+<p align="center"><img src="docs/screenshots/readme/en/metadata.png" alt="Prompts and generation details in the galIMV inspector" /></p>
 
-### Prerequisites
-- CMake 3.21 or newer
-- C++20 compiler: MinGW-w64 (GCC 13+) or MSVC 2022
-- Qt 6.8+ (modules: `Core`, `Gui`, `Quick`, `Qml`, `Widgets`, `Svg`, `Concurrent`)
-- Ninja build system
-- *(Optional)* Inno Setup 6 for building the Windows installer
-- *(Optional)* 7-Zip for generating portable release archives
+The parser reads PNG text chunks, Automatic1111-style parameter text, ComfyUI API graphs, NovelAI prompt JSON, and companion `.txt` files. Available fields depend on what the image contains.
 
-### Build Instructions
-```bash
-git clone https://github.com/LeonWGal/galIMV.git
-cd galIMV
+## Make the workspace yours
 
-# Configure CMake
-cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+Choose a dark or light theme, 12 Lobe accents, and an application icon that follows the selected accent. Glass panels and Aurora surround the gallery; seven material pairs connect backgrounds such as charcoal and faded paper. A separate pair provides pure black and white.
 
-# Build targets
-cmake --build build --config Release
+![galIMV light theme with faded-paper background and Aurora](docs/screenshots/readme/en/gallery-light.png)
 
-# Install binaries and Qt runtime
+![Material undertones and accent colors in galIMV settings](docs/screenshots/readme/en/appearance.png)
+
+## Useful shortcuts
+
+These shortcuts cover the main actions:
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+O` | Open a folder |
+| `Ctrl+F` | Focus search |
+| `B / I` | Toggle the left panel / inspector |
+| `Ctrl+A` | Select all images |
+| `Ctrl+,` | Open settings |
+| `Space` | Preview the selected image |
+
+## Build from source
+
+You need a Qt-compatible C++20 compiler, Qt 6.8+, CMake 3.21+, Ninja, and zlib. Include Qt Quick, Quick Controls, Quick Dialogs, Concurrent, and Qt Test in the Qt SDK. Add Qt and compiler tools to `PATH`.
+
+From the project folder, run:
+
+```powershell
+cmake -S . -B build -G Ninja `
+  -DCMAKE_BUILD_TYPE=Release `
+  "-DCMAKE_PREFIX_PATH=QT_PREFIX" "-DZLIB_ROOT=ZLIB_PREFIX"
+cmake --build build
 cmake --install build --prefix dist
 ```
 
-### Running the App
-Run directly using the launcher script:
-```cmd
-run.bat
-```
+Replace `QT_PREFIX` with your Qt SDK directory and `ZLIB_PREFIX` with the directory containing zlib headers and libraries. The installed application is `dist/bin/galIMV.exe`.
 
-### Packaging Releases
-Create standalone portable archives and an Inno Setup installer:
-```cmd
-package.bat
-```
+## Files and documentation
 
-## Project Structure
+The application reads local images. Settings and cache are in `%LOCALAPPDATA%/LeonWGal/galIMV`; temporary files are in `%TEMP%/LeonWGal/galIMV`.
 
-```
-galIMV/
-├── CMakeLists.txt              # CMake build configuration
-├── package.bat                 # Automated distribution packaging script
-├── run.bat                     # Application launcher
-├── src/                        # C++ source files
-│   ├── gallery_model.cpp/h     # Multi-threaded image gallery model and caching
-│   ├── metadata_reader.cpp/h   # AI metadata extraction engine
-│   ├── tag_autocomplete.cpp/h  # Danbooru tag search and autocomplete
-│   ├── launcher.cpp            # Lightweight Windows launcher
-│   └── main.cpp                # Application entry point
-├── qml/                        # Qt Quick / QML interface
-│   └── main.qml                # Main gallery and inspector UI
-├── locales/                    # 20 JSON localization dictionaries
-├── resources/                  # Application icons, SVGs, and resource files
-├── installer/                  # Inno Setup installer script (setup.iss)
-├── docs/
-│   └── screenshots/            # Interface screenshots
-└── tests/                      # Unit and regression test suite
-```
+See the [shared interface guide](docs/shared-ui.md) for icons, palettes, component sizes, and checks.
 
-## License
+Open a test image and confirm that its preview and metadata appear in the inspector. Then select your theme and interface language.
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+---
+
+**LeonWGal** · [MIT license](LICENSE)

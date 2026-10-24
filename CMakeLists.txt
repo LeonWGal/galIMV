@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(galIMV VERSION 1.0.0 LANGUAGES CXX)
+project(galIMV VERSION 1.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,6 +25,7 @@ set_source_files_properties(resources/app.rc PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.ico")
 qt_add_executable(galIMV
     src/main.cpp
+    src/app_identity.h
     src/metadata_reader.h
     src/metadata_reader.cpp
     src/tag_autocomplete.h
@@ -33,6 +34,9 @@ qt_add_executable(galIMV
     src/gallery_model.cpp
     resources/app.rc
 )
+if(WIN32)
+    set_target_properties(galIMV PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
 
 qt_add_qml_module(galIMV
     URI galIMV
@@ -40,6 +44,10 @@ qt_add_qml_module(galIMV
     RESOURCE_PREFIX /
     QML_FILES
         qml/main.qml
+        qml/DesignSystem.js
+        qml/SurfaceSheen.qml
+        qml/FrostedPanel.qml
+        qml/BrandBadge.qml
     RESOURCES
         resources/app.ico
         resources/app.svg
@@ -77,6 +85,22 @@ target_link_libraries(galIMV PRIVATE
     ZLIB::ZLIB
 )
 
+set(ADAPTIVE_ICON_FILES
+    resources/accent-icons/lobe-red.ico
+    resources/accent-icons/lobe-orange.ico
+    resources/accent-icons/lobe-gold.ico
+    resources/accent-icons/lobe-yellow.ico
+    resources/accent-icons/lobe-lime.ico
+    resources/accent-icons/lobe-green.ico
+    resources/accent-icons/lobe-cyan.ico
+    resources/accent-icons/lobe-blue.ico
+    resources/accent-icons/lobe-geekblue.ico
+    resources/accent-icons/lobe-purple.ico
+    resources/accent-icons/lobe-magenta.ico
+    resources/accent-icons/lobe-volcano.ico
+)
+qt_add_resources(galIMV adaptive_icons PREFIX /galIMV FILES ${ADAPTIVE_ICON_FILES})
+
 # Automated Test Suite
 include(CTest)
 if(BUILD_TESTING)
@@ -102,11 +126,12 @@ set_tests_properties(galIMV.Legacy PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;GALIMV_SETTINGS_FILE=${CMAKE_CURRENT_BINARY_DIR}/legacy-settings.ini;GALIMV_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/legacy-cache;GALIMV_TEST_GALLERY=${CMAKE_CURRENT_SOURCE_DIR}/test_gallery")
 
 qt_add_executable(galIMVRegressionTests
-    tests/test_regressions.cpp src/metadata_reader.cpp src/metadata_reader.h
+    tests/test_regressions.cpp src/app_identity.h src/metadata_reader.cpp src/metadata_reader.h
     src/tag_autocomplete.cpp src/tag_autocomplete.h src/gallery_model.cpp src/gallery_model.h)
 target_link_libraries(galIMVRegressionTests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test Qt6::Concurrent ZLIB::ZLIB)
 set_target_properties(galIMVRegressionTests PROPERTIES WIN32_EXECUTABLE FALSE)
-qt_add_resources(galIMVRegressionTests regression_qml PREFIX /galIMV FILES qml/main.qml locales/en_US.json locales/ru_RU.json)
+qt_add_resources(galIMVRegressionTests regression_qml PREFIX /galIMV FILES qml/main.qml qml/DesignSystem.js qml/SurfaceSheen.qml qml/FrostedPanel.qml qml/BrandBadge.qml locales/en_US.json locales/ru_RU.json)
+qt_add_resources(galIMVRegressionTests adaptive_test_icons PREFIX /galIMV FILES ${ADAPTIVE_ICON_FILES})
 add_test(NAME galIMV.Regressions COMMAND galIMVRegressionTests -o -,txt)
 set_tests_properties(galIMV.Regressions PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;GALIMV_TEST_GALLERY=${CMAKE_CURRENT_SOURCE_DIR}/test_gallery")

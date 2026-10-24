@@ -1,4 +1,9 @@
 #include <QtTest>
+#include <QJSValue>
+#include <QQmlComponent>
+#include <QClipboard>
+#include <QMimeData>
+#include <cmath>
 #include <QAbstractItemModelTester>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -8,6 +13,11 @@
 #include <QQuickStyle>
 #include <QTemporaryDir>
 #include <QImage>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QCryptographicHash>
+#include <QSet>
+#include "../src/app_identity.h"
 #include <QFile>
 #include <QDir>
 #include <QDataStream>
@@ -533,6 +543,302 @@ private slots:
                      !warning.description().contains("Binding loop"), qPrintable(warning.toString()));
         window->close();
     }
+    void inspectorWelcomeAndLibraryStatus() {
+        fixture("inspector-start/a.png"); fixture("inspector-start/b.png");
+        TagAutocomplete tags; GalleryModel gallery(&tags);
+        QQmlApplicationEngine engine;
+        QList<QQmlError> warnings;
+        connect(&engine, &QQmlApplicationEngine::warnings, this, [&](const auto& list) { warnings.append(list); });
+        engine.rootContext()->setContextProperty("gallery", &gallery);
+        engine.rootContext()->setContextProperty("tagAuto", &tags);
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
+        window->setWidth(1040); window->setHeight(700);
+        auto* welcome = findItem(window->contentItem(), "inspectorWelcome"); QVERIFY(welcome);
+        auto* action = findItem(window->contentItem(), "inspectorWelcomeAction"); QVERIFY(action);
+        auto* status = findItem(window->contentItem(), "libraryStatusButton"); QVERIFY(status);
+        auto* viewport = findItem(window->contentItem(), "masonryViewport"); QVERIFY(viewport);
+        QTRY_VERIFY(welcome->isVisible());
+        QVERIFY(action->property("enabled").toBool());
+        QTRY_VERIFY(viewport->mapToScene(QPointF(0, viewport->height())).y() >= window->height() - 12);
+        scan(gallery, storage.filePath("inspector-start"));
+        QTRY_COMPARE(status->property("text").toString(), QString("2 / 2"));
+        auto click = [&](QQuickItem* item) {
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier,
+                              item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+        };
+        QTest::qWait(200); click(action);
+        QTRY_COMPARE(gallery.selectedCount(), 1);
+        QVERIFY(!welcome->isVisible());
+        gallery.clearMultiSelection(); QTRY_VERIFY(welcome->isVisible());
+        auto* search = findItem(window->contentItem(), "searchInput"); QVERIFY(search);
+        search->setProperty("text", "no-matching-image");
+        QTRY_COMPARE_WITH_TIMEOUT(gallery.rowCount(), 0, 5000);
+        QTRY_COMPARE(status->property("text").toString(), QString("0 / 2"));
+        click(action);
+        QTRY_COMPARE_WITH_TIMEOUT(gallery.rowCount(), 2, 5000);
+        QCOMPARE(gallery.selectedCount(), 0);
+        click(status);
+        auto* popup = window->findChild<QObject*>("libraryStatusPopup"); QVERIFY(popup);
+        QTRY_VERIFY(popup->property("visible").toBool());
+        QCOMPARE(popup->property("popupType").toInt(), 0);
+        QVERIFY(popup->property("y").toReal() >= 0);
+        QVERIFY(popup->property("y").toReal() + popup->property("height").toReal() <= window->height());
+        QVERIFY(popup->property("x").toReal() >= 0);
+        QVERIFY(popup->property("x").toReal() + popup->property("width").toReal() <= window->width());
+        const auto popupCapture = qEnvironmentVariable("GALIMV_UI_CAPTURE_DIR");
+        if (!popupCapture.isEmpty()) {
+            QTest::qWait(300);
+            QVERIFY(window->grabWindow().save(popupCapture + "/library-popup-click.png"));
+        }
+        auto* grid = findItem(window->contentItem(), "libraryGridSettings"); QVERIFY(grid);
+        click(grid);
+        QTRY_VERIFY(window->property("settingsModalOpen").toBool());
+        QCOMPARE(window->property("activeSettingsTab").toInt(), 1);
+        QVERIFY(!popup->property("visible").toBool());
+        window->setProperty("settingsModalOpen", false);
+        window->setProperty("showInspector", false);
+        QTRY_VERIFY(!welcome->isVisible());
+        QVERIFY(status->isVisible());
+        for (const auto& warning : warnings) {
+            QVERIFY2(!warning.description().contains("ReferenceError") && !warning.description().contains("TypeError") &&
+                     !warning.description().contains("Binding loop"), qPrintable(warning.toString()));
+        }
+        window->close();
+    }
+    void unifiedDesignKeepsGlassAndReadableControls() {
+        TagAutocomplete tags; GalleryModel gallery(&tags);
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("gallery", &gallery);
+        engine.rootContext()->setContextProperty("tagAuto", &tags);
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first()); QVERIFY(window);
+        QCOMPARE(window->property("controlHeight").toInt(),36);
+        const auto design=window->property("uiDesign").value<QJSValue>().toVariant().toMap();
+        const auto icons=design.value("icons").toMap();QVERIFY(icons.size()>=55);
+        for (auto it=icons.begin();it!=icons.end();++it) {
+            QVariant svg;
+            QVERIFY(QMetaObject::invokeMethod(window,"sharedIconSource",Q_RETURN_ARG(QVariant,svg),Q_ARG(QVariant,it.key()),Q_ARG(QVariant,QString("#c8c8d2"))));
+            QVERIFY(svg.toString().startsWith("data:image/svg+xml;utf8,"));
+        }
+        auto luminance=[](const QColor& c) {
+            auto linear=[](double v){return v<=.04045?v/12.92:std::pow((v+.055)/1.055,2.4);};
+            return .2126*linear(c.redF())+.7152*linear(c.greenF())+.0722*linear(c.blueF());
+        };
+        for(const auto &accent:design.value("accents").toList()) {
+            const auto color=accent.toMap().value("hex").toString();QVariant ink;
+            QVERIFY(QMetaObject::invokeMethod(window,"getAccentContrastColor",Q_RETURN_ARG(QVariant,ink),Q_ARG(QVariant,color)));
+            double a=luminance(QColor(color)),b=luminance(QColor(ink.toString()));
+            QVERIFY((std::max(a,b)+.05)/(std::min(a,b)+.05)>=4.5);
+        }
+        window->setProperty("enableGlass",true);
+        QVERIFY(window->property("bgGlassPanel").value<QColor>().alphaF()<1.0);
+        QCOMPARE(window->property("bgInput").value<QColor>().alphaF(),1.0);
+        window->close();
+    }
+    void inspectorCopyActionsSupportKeyboard() {
+        TagAutocomplete tags;GalleryModel gallery(&tags);scan(gallery,testGalleryDir());gallery.selectSingle(0);
+        QVERIFY(!gallery.selectedImage().value("prompt").toString().isEmpty());
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("gallery",&gallery);
+        engine.rootContext()->setContextProperty("tagAuto",&tags);
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
+        window->setProperty("showInspector",true);QTest::qWait(100);
+        auto* button=findItem(window->contentItem(),"inspectorCopyPrompt");QVERIFY(button);QVERIFY(button->isEnabled());
+        auto* clipboard=QGuiApplication::clipboard();auto* previous=new QMimeData;
+        if(const auto* original=clipboard->mimeData()) for(const auto& format:original->formats()) previous->setData(format,original->data(format));
+        button->forceActiveFocus();QTest::keyClick(window,Qt::Key_Return);
+        const auto actual=clipboard->text();clipboard->setMimeData(previous);
+        QCOMPARE(actual,gallery.selectedImage().value("prompt").toString());
+        auto* negative=findItem(window->contentItem(),"inspectorCopyNegative");QVERIFY(negative);
+        window->close();
+    }
+    void allTwentyLanguagesResolveCatalogsAndRefreshQml() {
+        TagAutocomplete tags;GalleryModel gallery(&tags);QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("gallery",&gallery);engine.rootContext()->setContextProperty("tagAuto",&tags);
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
+        const auto languages=gallery.availableLanguages();QCOMPARE(languages.size(),20);
+        window->setProperty("settingsModalOpen",true);window->setProperty("isDarkTheme",true);QTest::qWait(50);
+        for(const auto& language:languages) {
+            const auto code=language.toMap().value("code").toString();gallery.setLanguage(code);QTest::qWait(3);
+            QFile file("locales/"+code+".json");QVERIFY(file.open(QIODevice::ReadOnly));
+            const auto native=QJsonDocument::fromJson(file.readAll()).object();QVERIFY(!native.isEmpty());
+            std::function<void(const QJsonObject&,const QString&)> check;
+            check=[&](const QJsonObject& data,const QString& prefix) {
+                for(auto it=data.begin();it!=data.end();++it) {
+                    const auto key=prefix.isEmpty()?it.key():prefix+"."+it.key();
+                    if(it.value().isObject())check(it.value().toObject(),key);
+                    else QCOMPARE(gallery.t(key,"MISSING"),it.value().toString());
+                }
+            };
+            check(native,QString());
+            QSignalSpy failures(&gallery,&GalleryModel::operationFailed);
+            QVERIFY(!gallery.deleteFile("/__galimv_localization_missing_image__.png",false));
+            QCOMPARE(failures.size(),1);
+            QCOMPARE(failures.first().first().toString(),gallery.t("backend.message_18"));
+            tags.loadCsvFileAsync("/__galimv_localization_missing_dictionary__.csv");
+            auto* errorDialog=window->findChild<QObject*>("operationErrorDialog");QVERIFY(errorDialog);
+            QCOMPARE(errorDialog->property("message").toString(),gallery.t("backend.tag_missing").arg("/__galimv_localization_missing_dictionary__.csv"));
+            QVERIFY(QMetaObject::invokeMethod(errorDialog,"close"));
+
+            const auto tone=window->property("backgroundTones").value<QJSValue>().toVariant().toList().first();
+            QVariant label;QVERIFY(QMetaObject::invokeMethod(window,"toneTitle",Q_RETURN_ARG(QVariant,label),Q_ARG(QVariant,tone),Q_ARG(QVariant,QVariant(true))));
+            QCOMPARE(label.toString(),gallery.t("undertones.zinc.dark"));
+            QCOMPARE(window->property("langEpoch").toInt(),gallery.languageEpoch());
+        }
+        window->close();
+    }
+    void pairedUndertonesAndAllAdaptiveIcons() {
+        TagAutocomplete tags;GalleryModel gallery(&tags);QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("gallery",&gallery);engine.rootContext()->setContextProperty("tagAuto",&tags);
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window=engine.rootObjects().first();
+        const auto accents=window->property("uiDesign").value<QJSValue>().toVariant().toMap().value("accents").toList();
+        QSet<QByteArray> hashes;AppIdentity identity;const auto original=QGuiApplication::windowIcon();
+        for(const auto& value:accents) {
+            const auto accent=value.toMap();
+            QVERIFY(identity.setAccent(accent.value("key").toString()));
+            const auto image=QGuiApplication::windowIcon().pixmap(48,48).toImage();QVERIFY(!image.isNull());
+            hashes.insert(QCryptographicHash::hash(QByteArray(reinterpret_cast<const char*>(image.constBits()),image.sizeInBytes()),QCryptographicHash::Sha256));
+        }
+        const auto tones=window->property("backgroundTones").value<QJSValue>().toVariant().toList();QCOMPARE(tones.size(),8);
+        for(const auto& value:tones) {
+            const auto tone=value.toMap();window->setProperty("backgroundToneName",tone.value("id"));
+            for(bool dark:{true,false}) {
+                window->setProperty("isDarkTheme",dark);
+                const auto actual=window->property("bgApp").value<QColor>(),expected=QColor(tone.value(dark?"dark":"light").toString());
+                QVERIFY(qAbs(actual.red()-expected.red())<=1);QVERIFY(qAbs(actual.green()-expected.green())<=1);QVERIFY(qAbs(actual.blue()-expected.blue())<=1);
+            }
+            QCOMPARE(gallery.loadSetting("ui/backgroundToneName").toString(),tone.value("id").toString());
+        }
+        QCOMPARE(hashes.size(),12);QGuiApplication::setWindowIcon(original);
+        window->setProperty("backgroundToneName","pure");window->setProperty("isDarkTheme",true);
+        QCOMPARE(window->property("bgApp").value<QColor>(),QColor("#000000"));
+        window->setProperty("isDarkTheme",false);QCOMPARE(window->property("bgApp").value<QColor>(),QColor("#ffffff"));
+        window->setProperty("backgroundToneName","charcoal");
+        QQmlApplicationEngine restored;restored.rootContext()->setContextProperty("gallery",&gallery);restored.rootContext()->setContextProperty("tagAuto",&tags);
+        restored.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!restored.rootObjects().isEmpty());
+        QCOMPARE(restored.rootObjects().first()->property("backgroundToneName").toString(),QString("charcoal"));
+        window->setProperty("visible",false);restored.rootObjects().first()->setProperty("visible",false);
+    }
+    void gestArtAccentsAndSpecularBounds() {
+        TagAutocomplete tags; GalleryModel gallery(&tags); QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("gallery",&gallery);
+        engine.rootContext()->setContextProperty("tagAuto",&tags);
+        engine.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!engine.rootObjects().isEmpty());
+        auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());QVERIFY(window);
+        const auto design=window->property("uiDesign").value<QJSValue>().toVariant().toMap();
+        window->setProperty("settingsModalOpen",true);QTest::qWait(80);
+        int imported=0;
+        for(const auto& value:design.value("accents").toList()) {
+            const auto accent=value.toMap();if(accent.value("group")!="lobe")continue;++imported;
+            for(bool dark:{false,true}) {
+                window->setProperty("isDarkTheme",dark);
+                QVERIFY(QMetaObject::invokeMethod(window,"chooseAccent",Q_ARG(QVariant,accent.value("name"))));
+                QCOMPARE(window->property("lobeAccent").value<QColor>(),QColor(accent.value(dark?"dark":"light").toString()));
+                auto* label=findItem(window->contentItem(),"activeSettingsNavigationLabel");QVERIFY(label);
+                QVariant ink;QVERIFY(QMetaObject::invokeMethod(window,"getAccentContrastColor",Q_RETURN_ARG(QVariant,ink),Q_ARG(QVariant,accent.value(dark?"dark":"light"))));
+                QCOMPARE(label->property("color").value<QColor>(),QColor(ink.toString()));
+            }
+        }
+        QCOMPARE(imported,12);QCOMPARE(design.value("accents").toList().size(),12);
+        QVERIFY(QMetaObject::invokeMethod(window,"chooseAccent",Q_ARG(QVariant,QString("GestArt Gold"))));
+        QCOMPARE(window->property("lobeAccentName").toString(),QString("Lobe Gold"));
+        window->setProperty("lobeAccentName","Monochrome Zinc");
+        QVERIFY(QMetaObject::invokeMethod(window,"applySelectedAccent"));
+        QCOMPARE(window->property("lobeAccentName").toString(),QString("Lobe Blue"));
+        window->setProperty("glassBlurAmount",.45);window->setProperty("glassOpacity",.8);
+        QCOMPARE(gallery.loadSetting("ui/glassBlurAmount").toDouble(),.45);
+        QCOMPARE(gallery.loadSetting("ui/glassOpacity").toDouble(),.8);
+        window->setProperty("settingsModalOpen",true);QTest::qWait(150);
+        int checked=0;
+        for(auto* item:window->findChildren<QQuickItem*>()) {
+            if(item->objectName()!="surfaceSheenOutline")continue;
+            const auto* clip=item->parentItem();if(!clip || clip->height()==0)continue;
+            const auto* owner=clip->parentItem();QVERIFY(owner);if(owner->width()<2)continue;++checked;
+            QCOMPARE(item->x(),0.0);QCOMPARE(item->width(),owner->width());
+            QCOMPARE(item->height(),owner->height());
+            QCOMPARE(clip->width(),owner->width());QVERIFY(clip->clip());
+            const auto radius=owner->property("effectiveRadius").toDouble();
+            QCOMPARE(item->property("radius").toDouble(),radius);
+            QVERIFY(clip->height()<=owner->height());QVERIFY(clip->height()>=radius);
+        }
+        QVERIFY(checked>20);window->close();
+        QQmlApplicationEngine restored;
+        restored.rootContext()->setContextProperty("gallery",&gallery);
+        restored.rootContext()->setContextProperty("tagAuto",&tags);
+        restored.load(QUrl("qrc:/galIMV/qml/main.qml"));QVERIFY(!restored.rootObjects().isEmpty());
+        QCOMPARE(restored.rootObjects().first()->property("glassOpacity").toDouble(),.8);
+        QCOMPARE(restored.rootObjects().first()->property("glassBlurAmount").toDouble(),.45);
+        restored.rootObjects().first()->setProperty("visible",false);
+    }
+    void gpuGlassBlursBackdropAndKeepsForegroundSharp() {
+        if(!qEnvironmentVariableIsSet("GALIMV_TEST_GLASS_GPU"))QSKIP("Run separately with a native hardware renderer.");
+        QQmlEngine engine;QQmlComponent component(&engine);
+        component.setData("\nimport QtQuick\nimport QtQuick.Window\nimport \"qrc:/galIMV/qml\"\nWindow {\n    visible:true;opacity:0;flags:Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus | Qt.WindowTransparentForInput;width:320;height:240;color:\"#101010\"\n    Item {\n        id:checker;anchors.fill:parent\n        Repeater {model:320*240/16\n            Rectangle {required property int index;width:4;height:4;x:(index%80)*4;y:Math.floor(index/80)*4;color:(Math.floor(index/80)+index%80)%2?\"white\":\"black\"}\n        }\n    }\n    FrostedPanel {\n        id:glass;objectName:\"testGlass\";x:80;y:50;width:200;height:140\n        sourceScene:checker;radius:20;opacityLevel:0;amount:1;specular:false;tintStrength:0;chroma:0\n        Rectangle {x:80;y:60;width:2;height:20;color:\"#ff0000\"}\n    }\n    Rectangle {x:10;y:180;width:80;height:40;radius:12;color:\"#101010\";SurfaceSheen {anchors.fill:parent;cornerRadius:12;highlightColor:\"#ff00ff\"}}\n}",QUrl("qrc:/galIMV/qml/GlassTest.qml"));
+        QVERIFY2(component.isReady(),qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.create());auto* window=qobject_cast<QQuickWindow*>(object.get());QVERIFY(window);
+        QTest::qWait(900);
+        auto* panel=window->findChild<QQuickItem*>("testGlass");QVERIFY(panel);
+        QVERIFY(panel->property("hardwareAvailable").toBool());QVERIFY(panel->property("frosted").toBool());
+        const auto image=window->grabWindow();QVERIFY(!image.isNull());
+        double plain=0,blurred=0;
+        for(int x=104;x<240;++x) {
+            plain+=qAbs(image.pixelColor(x,20).red()-image.pixelColor(x+1,20).red());
+            blurred+=qAbs(image.pixelColor(x,95).red()-image.pixelColor(x+1,95).red());
+        }
+        QVERIFY2(blurred<plain*.3,qPrintable(QString("Backdrop edge energy %1 / %2").arg(blurred).arg(plain)));
+        const QColor foreground=image.pixelColor(160,115);QVERIFY(foreground.red()>240&&foreground.green()<20);
+        const auto left=image.pixelColor(10,192),right=image.pixelColor(89,192);
+        QVERIFY(left.red()>200&&left.blue()>200&&left.green()<30);
+        QVERIFY(right.red()>200&&right.blue()>200&&right.green()<30);
+        const auto corner=image.pixelColor(10,180);QVERIFY(!(corner.red()>200&&corner.blue()>200&&corner.green()<30));
+        const auto capture=qEnvironmentVariable("GALIMV_GLASS_CAPTURE");if(!capture.isEmpty())QVERIFY(image.save(capture));
+        window->close();
+    }
+    void gpuGlassAppearanceReview() {
+        const auto folder=qEnvironmentVariable("GALIMV_GLASS_REVIEW_DIR");
+        if(folder.isEmpty())QSKIP("Set GALIMV_GLASS_REVIEW_DIR for the native GPU appearance review.");
+        QDir().mkpath(folder);
+        TagAutocomplete tags;GalleryModel gallery(&tags);scan(gallery,testGalleryDir());gallery.selectSingle(0);
+        QQmlEngine engine;engine.rootContext()->setContextProperty("gallery",&gallery);engine.rootContext()->setContextProperty("tagAuto",&tags);
+        QQmlComponent component(&engine,QUrl("qrc:/galIMV/qml/main.qml"));
+        QVERIFY2(component.isReady(),qPrintable(component.errorString()));
+        QObject* object=component.beginCreate(engine.rootContext());QVERIFY(object);
+        auto* window=qobject_cast<QQuickWindow*>(object);QVERIFY(window);
+        window->setOpacity(0);window->setFlags(Qt::Tool|Qt::FramelessWindowHint|Qt::WindowDoesNotAcceptFocus|Qt::WindowTransparentForInput);
+        component.completeCreate();std::unique_ptr<QObject> owner(object);
+        window->resize(1360,860);window->setProperty("auroraAnimated",false);window->setProperty("enableGlass",true);
+        window->setProperty("isDarkTheme",true);
+        QVERIFY(QMetaObject::invokeMethod(window,"chooseAccent",Q_ARG(QVariant,QString("Lobe Cyan"))));
+        for(auto* item:window->findChildren<QQuickItem*>())if(item->objectName()=="toolbarGlass"||item->objectName()=="leftSidebarGlass"||item->objectName()=="inspectorGlass")item->setProperty("captureLive",true);
+        QTest::qWait(900);
+        auto* glass=window->findChild<QQuickItem*>("inspectorGlass");QVERIFY(glass);QVERIFY(glass->property("frosted").toBool());
+        QVERIFY(window->grabWindow().save(folder+"/galIMV-glass-dark.png"));
+        window->setProperty("isDarkTheme",false);QTest::qWait(400);
+        const auto lightOn=window->grabWindow();QVERIFY(lightOn.save(folder+"/galIMV-glass-light.png"));
+        window->setProperty("enableAurora",false);QTest::qWait(250);const auto lightOff=window->grabWindow();
+        double pigment=0;int samples=0;
+        for(int y=0;y<lightOn.height();y+=4)for(int x=0;x<lightOn.width();x+=4) {
+            const auto a=lightOn.pixelColor(x,y),b=lightOff.pixelColor(x,y);
+            pigment+=qAbs(a.red()-b.red())+qAbs(a.green()-b.green())+qAbs(a.blue()-b.blue());++samples;
+        }
+        qInfo()<<"Light Aurora mean RGB difference:"<<pigment/(samples*3);
+        QVERIFY2(pigment/(samples*3)>1.0,"Light Aurora must make a visible pixel difference on the actual workspace.");
+        QVERIFY(lightOff.save(folder+"/aurora-light-off.png"));window->setProperty("enableAurora",true);QTest::qWait(150);
+        window->setProperty("isDarkTheme",true);window->setProperty("settingsModalOpen",true);QTest::qWait(500);
+        QVERIFY(window->grabWindow().save(folder+"/galIMV-12-accents.png"));
+        window->setProperty("isDarkTheme",false);window->setProperty("backgroundToneName","charcoal");QTest::qWait(250);
+        QVERIFY(window->grabWindow().save(folder+"/undertones-light.png"));
+        window->setProperty("settingsModalOpen",false);QTest::qWait(200);QVERIFY(window->grabWindow().save(folder+"/faded-paper.png"));
+        window->setProperty("isDarkTheme",true);window->setProperty("backgroundToneName","pure");window->setProperty("enableAurora",false);QTest::qWait(200);
+        QVERIFY(window->grabWindow().save(folder+"/pure-black.png"));
+        window->close();
+    }
     void uiVisualReview() {
         const auto captureDir = qEnvironmentVariable("GALIMV_UI_CAPTURE_DIR");
         if (captureDir.isEmpty()) QSKIP("Set GALIMV_UI_CAPTURE_DIR to capture the actual interface.");
@@ -565,6 +871,17 @@ private slots:
         scan(gallery, testGalleryDir());
         QTRY_VERIFY_WITH_TIMEOUT(cardCount(window->contentItem()) > 0, 5000);
         QVERIFY(!empty->isVisible());
+        capture("inspector-empty-library");
+        window->setProperty("width", 1040); window->setProperty("height", 700); capture("inspector-empty-compact");
+        window->setProperty("isDarkTheme", false); capture("inspector-empty-light");
+        window->setProperty("isDarkTheme", true);
+        window->setProperty("width", 1360); window->setProperty("height", 860);
+        auto* statusPopup = window->findChild<QObject*>("libraryStatusPopup"); QVERIFY(statusPopup);
+        QVERIFY(QMetaObject::invokeMethod(statusPopup, "open"));
+        QTRY_VERIFY(statusPopup->property("visible").toBool());
+        QTRY_VERIFY(statusPopup->property("height").toReal() > 100);
+        capture("library-status");
+        QVERIFY(QMetaObject::invokeMethod(statusPopup, "close"));
         gallery.selectSingle(0);
         QTest::qWait(1000);
         capture("gallery");
@@ -615,7 +932,7 @@ private slots:
         window->setProperty("auroraIntensity", 0.35);
         QVERIFY(qFuzzyCompare(aurora->opacity(), 0.35 * 0.92));
         window->setProperty("isDarkTheme", false);
-        QVERIFY(qFuzzyCompare(aurora->opacity(), 0.35 * 0.36));
+        QVERIFY(qFuzzyCompare(aurora->opacity(), 0.35 * 1.0));
         window->setProperty("enableAurora", false); QVERIFY(!aurora->isVisible());
         window->setProperty("auroraAnimated", true); QVERIFY(animation->property("paused").toBool());
         window->setProperty("enableAurora", true); QTRY_VERIFY(!animation->property("paused").toBool());

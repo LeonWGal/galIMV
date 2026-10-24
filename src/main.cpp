@@ -9,19 +9,24 @@
 #include <QQmlError>
 #include <iostream>
 #include "gallery_model.h"
+#include "app_paths.h"
+#include "app_identity.h"
 #include "tag_autocomplete.h"
 
 int main(int argc, char *argv[])
 {
+    AppPaths::configureTemporaryFiles("galIMV");
     QGuiApplication app(argc, argv);
     app.setApplicationName("galIMV");
+    app.setApplicationVersion("1.2.0");
     app.setApplicationDisplayName("galIMV");
-    app.setOrganizationName("galIMV");
+    app.setOrganizationName("LeonWGal");
     app.setWindowIcon(QIcon(":/galIMV/resources/app.ico"));
 
     // Set generous pixmap cache (256 MB) to prevent disk thrashing when scrolling deep libraries
     QPixmapCache::setCacheLimit(256 * 1024);
 
+    AppPaths::configureQmlCache(qEnvironmentVariable("GALIMV_CACHE_DIR", AppPaths::dataDirectory("galIMV")));
     QQuickStyle::setStyle("Basic");
 
     TagAutocomplete tagAutocomplete;
@@ -42,6 +47,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    AppIdentity appIdentity;
     QQmlApplicationEngine engine;
     
     QObject::connect(&engine, &QQmlApplicationEngine::warnings, [](const QList<QQmlError>& warnings) {
@@ -52,6 +58,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("tagAuto", &tagAutocomplete);
     engine.rootContext()->setContextProperty("gallery", &galleryModel);
+    engine.rootContext()->setContextProperty("appIdentity", &appIdentity);
 
     const QUrl url("qrc:/galIMV/qml/main.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

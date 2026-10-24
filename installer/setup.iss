@@ -1,10 +1,18 @@
 ; Script generated for galIMV Windows Installer
 #define MyAppName "galIMV"
-#define MyAppVersion "1.0.0"
-#define MyAppPublisher "galIMV Team"
+#define MyAppVersion "1.2.0"
+#define MyAppPublisher "LeonWGal"
 #define MyAppExeName "galIMV.exe"
 #define MyLauncherName "galIMV.exe"
+#ifndef MyAppRoot
 #define MyAppRoot ".."
+#endif
+#ifndef MyDistDir
+#define MyDistDir MyAppRoot + "\dist"
+#endif
+#ifndef MyOutputDir
+#define MyOutputDir MyAppRoot + "\dist-release"
+#endif
 
 [Setup]
 AppId={{C682A3A1-7EB9-4F54-9E67-0245C4B4E87A}
@@ -14,8 +22,8 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-OutputDir={#MyAppRoot}\dist-release
-OutputBaseFilename=galIMV-{#MyAppVersion}-Setup
+OutputDir={#MyOutputDir}
+OutputBaseFilename=galIMV-{#MyAppVersion}-Windows-x64-Setup
 SetupIconFile={#MyAppRoot}\resources\app.ico
 UninstallDisplayIcon={app}\bin\{#MyAppExeName}
 Compression=lzma2/ultra64
@@ -44,7 +52,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "associate_images"; Description: "{cm:AssociateImages}"; GroupDescription: "{cm:OtherTasks}"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppRoot}\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyDistDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; WorkingDir: "{app}\bin"; IconFilename: "{app}\bin\{#MyAppExeName}"

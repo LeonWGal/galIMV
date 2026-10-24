@@ -39,7 +39,7 @@ TagAutocomplete::TagAutocomplete(QObject* parent)
             emit csvPathChanged();
             emit tagsUpdated();
         } else {
-            emit loadFailed(tr("Could not load the tag dictionary."));
+            emit loadFailed(tr("Could not load the tag dictionary."), "backend.tag_load_failed");
         }
     });
 }
@@ -150,12 +150,12 @@ void TagAutocomplete::autoLoadCsvAsync()
 void TagAutocomplete::loadCsvFileAsync(const QString& filePath)
 {
     if (m_csvWatcher.isRunning()) {
-        emit loadFailed(tr("A tag dictionary is already being loaded."));
+        emit loadFailed(tr("A tag dictionary is already being loaded."), "backend.tag_busy");
         return;
     }
     QString path = filePath.startsWith("file:") ? QUrl(filePath).toLocalFile() : filePath;
     if (!QFileInfo::exists(path)) {
-        emit loadFailed(tr("Tag dictionary not found: %1").arg(path));
+        emit loadFailed(tr("Tag dictionary not found: %1").arg(path), "backend.tag_missing", path);
         return;
     }
     m_loadingPath = path;

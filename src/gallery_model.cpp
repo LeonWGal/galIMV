@@ -150,7 +150,8 @@ GalleryModel::GalleryModel(TagAutocomplete* tagAuto, QObject* parent)
 {
     m_subfolderList << "All";
     m_availableModels << "All";
-    QSettings settings = galIMVSettings();
+
+    QSettings settings = galIMVSettings();
     m_sortMode = settings.value("library/sortMode", 0).toInt();
     m_selectedModel = settings.value("library/selectedModel", "All").toString();
     m_groupMode = settings.value("library/groupMode", 0).toInt();
@@ -194,7 +195,7 @@ GalleryModel::GalleryModel(TagAutocomplete* tagAuto, QObject* parent)
         updateViewport();
     });
     connect(&m_cacheWatcher, &QFutureWatcher<bool>::finished, this, [this]() {
-        if (!m_cacheWatcher.result()) emit operationFailed(tr("Could not save the metadata cache."));
+        if (!m_cacheWatcher.result()) emit operationFailed(t("backend.message_1", "Could not save the metadata cache."));
         startCacheSave();
     });
     if (m_tagAuto) connect(m_tagAuto, &TagAutocomplete::csvLoadedChanged, this, &GalleryModel::applyFilter);
@@ -366,7 +367,7 @@ void GalleryModel::openFolder(const QString& folderPath)
     const QString local = folderPath.startsWith("file:") ? QUrl(folderPath).toLocalFile() : folderPath;
     const QString path = QDir::cleanPath(QFileInfo(local).absoluteFilePath());
     if (!QDir(path).exists()) {
-        emit operationFailed(tr("Folder not found: %1").arg(path));
+        emit operationFailed(t("backend.message_2", "Folder not found: %1").arg(path));
         return;
     }
     cancelScan();
@@ -400,7 +401,7 @@ void GalleryModel::openFolder(const QString& folderPath)
     updateViewport();
     m_isLoading = true;
     m_scanProgress = 0;
-    m_scanStatus = tr("Scanning directory tree...");
+    m_scanStatus = t("backend.message_3", "Scanning directory tree...");
     emit currentFolderChanged();
     emit isLoadingChanged();
     emit scanProgressChanged();
@@ -420,7 +421,7 @@ void GalleryModel::openFolder(const QString& folderPath)
 void GalleryModel::startScanner(bool readCache)
 {
     m_isLoading = true;
-    m_scanStatus = tr("Scanning directory tree...");
+    m_scanStatus = t("backend.message_3", "Scanning directory tree...");
     emit isLoadingChanged();
     emit scanStatusChanged();
     QHash<QString, ScannerWorker::CachedFileInfo> cache;
@@ -473,7 +474,7 @@ void GalleryModel::onBatchFound(const QList<ImageMetadata>& batch)
 void GalleryModel::onProgress(int count, const QString& currentFolder, qreal progressRatio, int totalFiles)
 {
     m_scanProgress = progressRatio;
-    m_scanStatus = QString("Indexing: %1 / %2 files (%3%) - %4")
+    m_scanStatus = t("backend.message_21", "Indexing: %1 / %2 files (%3%) - %4")
         .arg(count)
         .arg(totalFiles)
         .arg(qRound(progressRatio * 100))
@@ -486,7 +487,7 @@ void GalleryModel::onScanFinished(int)
 {
     m_isLoading = false;
     m_scanProgress = 1;
-    m_scanStatus = tr("Library indexed: %1 items").arg(m_allImages.size());
+    m_scanStatus = t("backend.message_4", "Library indexed: %1 items").arg(m_allImages.size());
     m_viewTimer.stop();
     startViewCalculation();
     requestCacheSave();
@@ -975,8 +976,8 @@ GalleryModel::ViewResult GalleryModel::computeView(const ViewSnapshot& snapshot)
         for (int fIdx = 0; fIdx < result.indices.size(); ++fIdx) {
             int origIdx = result.indices[fIdx];
             const auto& meta = snapshot.images[origIdx];
-            QString dateKey = meta.modifiedDate.isValid() 
-                ? meta.modifiedDate.toString("yyyy-MM-dd") 
+            QString dateKey = meta.modifiedDate.isValid()
+                ? meta.modifiedDate.toString("yyyy-MM-dd")
                 : "Unknown Date";
             dateMap[dateKey].append(fIdx);
         }
@@ -1040,6 +1041,7 @@ void GalleryModel::selectImage(int filteredIndex)
     m_selectedImage["otherParams"] = meta.otherParams;
     m_selectedImage["modelName"] = meta.modelName;
     m_selectedImage["relativeDir"] = meta.relativeDir;
+    m_selectedImage["isLibraryRoot"] = QDir(QFileInfo(meta.filePath).absolutePath()) == QDir(m_currentFolder);
     m_selectedImage["tags"] = meta.tags;
     m_selectedImage["filteredIndex"] = filteredIndex;
 
@@ -1071,53 +1073,53 @@ bool sharesSidecar(const QString& image) {
     }
     return false;
 }
-bool moveImagePair(const QString& source, const QString& target, QString& error) {
+bool moveImagePair(const QString& source, const QString& target, QString& error, const GalleryModel& i18n) {
     if (source == target) return true;
     const QString txt = sidecarPath(source), targetTxt = sidecarPath(target);
     const bool hasTxt = QFile::exists(txt);
     const bool shared = hasTxt && sharesSidecar(source);
     if (QFile::exists(target) || (hasTxt && QFile::exists(targetTxt))) {
-        error = QObject::tr("A file with this name already exists: %1").arg(target);
+        error = i18n.t("backend.message_5", "A file with this name already exists: %1").arg(target);
         return false;
     }
     if (!QFile::rename(source,target)) {
-        error = QObject::tr("Could not move %1 to %2").arg(source,target);
+        error = i18n.t("backend.message_6", "Could not move %1 to %2").arg(source,target);
         return false;
     }
     if (hasTxt && !(shared ? QFile::copy(txt,targetTxt) : QFile::rename(txt,targetTxt))) {
         const bool restored = QFile::rename(target,source);
-        error = restored ? QObject::tr("Could not move the associated text file: %1. The image was restored.").arg(txt)
-                         : QObject::tr("Could not move %1 or restore the image. The image is now at %2.").arg(txt,target);
+        error = restored ? i18n.t("backend.message_7", "Could not move the associated text file: %1. The image was restored.").arg(txt)
+                         : i18n.t("backend.message_8", "Could not move %1 or restore the image. The image is now at %2.").arg(txt,target);
         return false;
     }
     return true;
 }
-bool deleteImagePair(const QString& source, bool trash, QString& error) {
+bool deleteImagePair(const QString& source, bool trash, QString& error, const GalleryModel& i18n) {
     const QFileInfo image(source);
     const QString txt = sidecarPath(source);
     const bool hasTxt = QFile::exists(txt) && !sharesSidecar(source);
     if (trash) {
         if (!QFile::moveToTrash(source)) {
-            error = QObject::tr("Could not move the image to the recycle bin: %1").arg(source);
+            error = i18n.t("backend.message_9", "Could not move the image to the recycle bin: %1").arg(source);
             return false;
         }
         if (hasTxt && !QFile::moveToTrash(txt))
-            error = QObject::tr("The image was moved to the recycle bin, but its text file remains at %1").arg(txt);
+            error = i18n.t("backend.message_10", "The image was moved to the recycle bin, but its text file remains at %1").arg(txt);
         return true;
     }
-    QTemporaryDir stage(image.absolutePath() + "/.galimv-delete-XXXXXX");
-    if (!stage.isValid()) { error = QObject::tr("Could not prepare deletion of %1").arg(source); return false; }
+    QTemporaryDir stage(AppPaths::temporaryDirectory("galIMV") + "/delete-XXXXXX");
+    if (!stage.isValid()) { error = i18n.t("backend.message_11", "Could not prepare deletion of %1").arg(source); return false; }
     const QString stagedImage = stage.filePath(image.fileName());
     const QString stagedTxt = stage.filePath(QFileInfo(txt).fileName());
     if (!QFile::rename(source,stagedImage)) {
-        error = QObject::tr("Could not delete %1").arg(source); return false;
+        error = i18n.t("backend.message_12", "Could not delete %1").arg(source); return false;
     }
     stage.setAutoRemove(false);
     if (hasTxt && !QFile::rename(txt,stagedTxt)) {
         const bool restored = QFile::rename(stagedImage,source);
         QDir().rmdir(stage.path());
-        error = restored ? QObject::tr("Could not delete the associated text file: %1").arg(txt)
-                         : QObject::tr("Deletion failed. The original image remains at %1").arg(stagedImage);
+        error = restored ? i18n.t("backend.message_13", "Could not delete the associated text file: %1").arg(txt)
+                         : i18n.t("backend.message_14", "Deletion failed. The original image remains at %1").arg(stagedImage);
         return false;
     }
     // Disable automatic cleanup: a failed operation must never silently destroy staged originals.
@@ -1126,14 +1128,14 @@ bool deleteImagePair(const QString& source, bool trash, QString& error) {
         if (!hasTxt || QFile::remove(stagedTxt)) { QDir().rmdir(stage.path()); return true; }
         QFile::rename(stagedTxt,txt);
         QDir().rmdir(stage.path());
-        error = QObject::tr("The image was deleted, but the associated text file could not be deleted: %1").arg(txt);
+        error = i18n.t("backend.message_15", "The image was deleted, but the associated text file could not be deleted: %1").arg(txt);
         return true; // The caller must remove the deleted image from the library.
     }
     const bool restoredImage = QFile::rename(stagedImage,source);
     const bool restoredText = !hasTxt || QFile::rename(stagedTxt,txt);
     QDir().rmdir(stage.path());
-    error = restoredImage && restoredText ? QObject::tr("Deletion failed; the original files were restored: %1").arg(source)
-                                         : QObject::tr("Deletion failed. Some original files remain in %1").arg(stage.path());
+    error = restoredImage && restoredText ? i18n.t("backend.message_16", "Deletion failed; the original files were restored: %1").arg(source)
+                                         : i18n.t("backend.message_17", "Deletion failed. Some original files remain in %1").arg(stage.path());
     return false;
 }
 }
@@ -1147,13 +1149,13 @@ bool GalleryModel::deleteFile(const QString& path, bool useTrash)
 {
     const QString source = localPath(path);
     if (path.isEmpty() || !m_pathIndex.contains(source)) {
-        emit operationFailed(tr("The selected image is no longer in the library."));
+        emit operationFailed(t("backend.message_18", "The selected image is no longer in the library."));
         return false;
     }
     m_resumeScan = m_resumeScan || m_isLoading;
     cancelScan();
     QString error;
-    bool success = deleteImagePair(source,useTrash,error);
+    bool success = deleteImagePair(source,useTrash,error,*this);
     if (!error.isEmpty()) emit operationFailed(error);
     if (success) {
         m_selectedPaths.remove(source);
@@ -1181,18 +1183,18 @@ bool GalleryModel::moveFile(const QString& path, const QString& destinationFolde
 {
     const QString source = localPath(path), destination = localPath(destinationFolder);
     if (path.isEmpty() || destinationFolder.isEmpty() || !m_pathIndex.contains(source)) {
-        emit operationFailed(tr("The selected image or destination is no longer available."));
+        emit operationFailed(t("backend.message_19", "The selected image or destination is no longer available."));
         return false;
     }
     if (!QDir().mkpath(destination)) {
-        emit operationFailed(tr("Could not create destination folder: %1").arg(destination));
+        emit operationFailed(t("backend.message_20", "Could not create destination folder: %1").arg(destination));
         return false;
     }
     m_resumeScan = m_resumeScan || m_isLoading;
     cancelScan();
     QString error;
     const QString target = QDir(destination).filePath(QFileInfo(source).fileName());
-    if (!moveImagePair(source,target,error)) {
+    if (!moveImagePair(source,target,error,*this)) {
         emit operationFailed(error);
         if (!QFile::exists(source)) {
             m_resumeScan = true;
@@ -1633,7 +1635,7 @@ void GalleryModel::toggleSelect(int filteredIndex)
 
         if (m_selectedPaths.contains(pathAt(filteredIndex))) {
             m_selectedPaths.remove(pathAt(filteredIndex));
-            if (m_selectedImage.contains("filteredIndex") && 
+            if (m_selectedImage.contains("filteredIndex") &&
                 m_selectedImage.value("filteredIndex").toInt() == filteredIndex) {
                 wasActiveDeselected = true;
                 if (!m_selectedPaths.isEmpty()) {
@@ -1939,9 +1941,9 @@ QVariantList GalleryModel::availableModelDetails() const
 QString GalleryModel::getCacheFilePath(const QString& rootPath)
 {
     QString baseDir = qEnvironmentVariable("GALIMV_CACHE_DIR");
-    if (baseDir.isEmpty()) baseDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (baseDir.isEmpty()) baseDir = AppPaths::dataDirectory("galIMV");
     if (baseDir.isEmpty()) {
-        baseDir = QDir::homePath() + "/.galIMV";
+        baseDir = QDir::homePath() + "/LeonWGal/galIMV";
     }
     QDir dir(baseDir + "/cache");
     if (!dir.exists()) {
@@ -2147,6 +2149,11 @@ void GalleryModel::setLanguage(const QString& langCode)
 {
     if (m_currentLanguage == langCode) return;
     loadTranslations(langCode);
+    if (!m_scanStatus.isEmpty()) {
+        m_scanStatus = m_isLoading ? t("status.scanning", "Scanning...")
+                                  : t("backend.message_4", "Library indexed: %1 items").arg(m_allImages.size());
+        emit scanStatusChanged();
+    }
     saveSetting("ui/language", langCode);
 }
 

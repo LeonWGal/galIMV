@@ -45,8 +45,8 @@ if exist "%SEVENZIP%" (
     if exist "%ROOT_DIR%dist-portable" rmdir /s /q "%ROOT_DIR%dist-portable"
     mkdir "%ROOT_DIR%dist-portable\galIMV"
     xcopy /e /i /y "%DIST_DIR%\*" "%ROOT_DIR%dist-portable\galIMV\" >nul
-    "%SEVENZIP%" a -tzip -mx=9 -y "%RELEASE_DIR%\galIMV-1.0.0-Portable.zip" "%ROOT_DIR%dist-portable\galIMV" >nul
-    "%SEVENZIP%" a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on -y "%RELEASE_DIR%\galIMV-1.0.0-Portable.7z" "%ROOT_DIR%dist-portable\galIMV" >nul
+    "%SEVENZIP%" a -tzip -mx=9 -y "%RELEASE_DIR%\galIMV-1.2.0-Portable.zip" "%ROOT_DIR%dist-portable\galIMV" >nul
+    "%SEVENZIP%" a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on -y "%RELEASE_DIR%\galIMV-1.2.0-Portable.7z" "%ROOT_DIR%dist-portable\galIMV" >nul
     rmdir /s /q "%ROOT_DIR%dist-portable"
 )
 

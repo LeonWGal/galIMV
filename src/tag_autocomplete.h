@@ -9,12 +9,25 @@
 #include <QSet>
 #include <QFutureWatcher>
 #include <QSettings>
+#include "app_paths.h"
 
 inline QSettings galIMVSettings()
 {
     const QString file = qEnvironmentVariable("GALIMV_SETTINGS_FILE");
     if (!file.isEmpty()) return QSettings(file, QSettings::IniFormat);
-    return QSettings("galIMV", "galIMV");
+    const QString directory = AppPaths::dataDirectory("galIMV");
+    AppPaths::requireDirectory(directory);
+    const QString target = directory + "/settings.ini";
+    QSettings current(target, QSettings::IniFormat);
+    if (!current.value("storage/migrated", false).toBool()) {
+        QSettings previous("galIMV", "galIMV");
+        for (const auto &key : previous.allKeys())
+            if (!current.contains(key)) current.setValue(key, previous.value(key));
+        current.setValue("storage/migrated", true);
+        current.sync();
+        if (current.status() != QSettings::NoError) qFatal("Cannot migrate galIMV settings.");
+    }
+    return QSettings(target, QSettings::IniFormat);
 }
 
 struct TagInfo {
@@ -58,7 +71,7 @@ public:
     Q_INVOKABLE bool loadCsv(const QString& filePath); // compatibility
 
 signals:
-    void loadFailed(const QString& message);
+    void loadFailed(const QString& message, const QString& translationKey = QString(), const QString& detail = QString());
     void tagsUpdated();
     void csvLoadedChanged();
     void csvPathChanged();

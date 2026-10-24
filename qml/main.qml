@@ -1,4 +1,5 @@
 import QtQuick
+import "DesignSystem.js" as UI
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
@@ -15,24 +16,22 @@ ApplicationWindow {
     title: qsTr("galIMV")
     color: root.bgApp
 
+    readonly property var uiDesign: UI.design
+    readonly property int controlHeight: UI.design.metrics.control
     // High-DPI Scaling Factor
     readonly property real dpr: (Screen.devicePixelRatio > 0) ? Screen.devicePixelRatio : 1.0
 
     // ================= 1. THEME & PALETTE SYSTEM =================
     property bool isDarkTheme: true
 
-    // Signature Accent Colors Palette - Lobe Theme Neo
-    readonly property var lobeColors: [
-        { name: "Lobe Blue",       hex: "#1677ff" },
-        { name: "Lobe Purple",     hex: "#722ed1" },
-        { name: "Lobe Magenta",    hex: "#eb2f96" },
-        { name: "Lobe Cyan",       hex: "#13c2c2" },
-        { name: "Lobe Green",      hex: "#52c41a" },
-        { name: "Lobe Orange",     hex: "#fa8c16" },
-        { name: "Monochrome Zinc", hex: "#71717a" }
-    ]
+    // Signature Accent Colors Palette - Lobe
+    readonly property var lobeColors: UI.design.accents
     property color lobeAccent: "#1677ff"
     property string lobeAccentName: "Lobe Blue"
+    property bool appearanceReady: false
+    readonly property var backgroundTones: UI.neutralTones
+    property string backgroundToneName: "zinc"
+    onBackgroundToneNameChanged: if(appearanceReady)gallery.saveSetting("ui/backgroundToneName",backgroundToneName)
 
     // Background Tone & Darkness Properties (Dark Theme)
     // 0 = Neutral Zinc, 1 = Cool Slate, 2 = Mauve, 3 = Pure OLED
@@ -64,7 +63,7 @@ ApplicationWindow {
     onAuroraIntensityChanged: gallery.saveSetting("ui/auroraIntensity", auroraIntensity)
     onAuroraAnimatedChanged: gallery.saveSetting("ui/auroraAnimated", auroraAnimated)
 
-    readonly property color auroraColor1: root.lobeAccent
+    readonly property color auroraColor1: root.isDarkTheme ? root.lobeAccent : Qt.hsla(Qt.color(root.lobeAccent).hslHue,.82,.42,1)
     readonly property color auroraColor2: {
         var c = Qt.color(root.lobeAccent)
         var h = (c.hslHue + 0.14) % 1.0
@@ -81,48 +80,33 @@ ApplicationWindow {
         return Qt.hsla(h, Math.min(0.90, c.hslSaturation * 0.90), Math.max(0.48, Math.min(0.72, c.hslLightness)), 1.0)
     }
 
-    // Reactive Tone Color Calculation - Dark (Neutral Zinc, Cool Slate, Mauve)
-    readonly property real darkToneR: {
-        if (bgTonePreset === 1) return Math.min(1.0, bgDarkness * 0.55); // Cool Slate (deep navy/slate blue)
-        if (bgTonePreset === 2) return Math.min(1.0, bgDarkness * 1.55 + 0.06); // Mauve (rich dark wine/violet)
-        return Math.min(1.0, bgDarkness * 1.00); // 0: Neutral Zinc (clean charcoal)
+    function toneDefinition(name) {
+        for(let i=0;i<backgroundTones.length;i++)if(backgroundTones[i].id===name)return backgroundTones[i];
+        return null;
     }
-    readonly property real darkToneG: {
-        if (bgTonePreset === 1) return Math.min(1.0, bgDarkness * 0.80 + 0.02);
-        if (bgTonePreset === 2) return Math.min(1.0, bgDarkness * 0.55);
-        return Math.min(1.0, bgDarkness * 1.00);
+    function toneTitle(option,dark) {
+        return tr("undertones."+option.id+"."+(dark?"dark":"light"),option[dark?"darkName":"lightName"]);
     }
-    readonly property real darkToneB: {
-        if (bgTonePreset === 1) return Math.min(1.0, bgDarkness * 1.70 + 0.06); // Deep slate blue sheen
-        if (bgTonePreset === 2) return Math.min(1.0, bgDarkness * 1.50 + 0.06); // Mauve/purple undertone
-        return Math.min(1.0, bgDarkness * 1.05);
+    function toneColorFor(name,dark,level) {
+        const option=toneDefinition(name)||backgroundTones[0];
+        if(option.pure)return option[dark?"dark":"light"];
+        const c=Qt.color(option[dark?"dark":"light"]);
+        const lightness=dark?Math.max(0,Math.min(.38,c.hslLightness+level-.08)):Math.max(.68,Math.min(1,c.hslLightness+.04-level));
+        return Qt.hsla(c.hslHue,c.hslSaturation,lightness,1);
     }
-
-    // Reactive Tone Color Calculation - Light (Distinct presets for Warm Paper, Cool Slate, Neutral, Pure Snow)
-    readonly property real lightBase: Math.max(0.60, 0.98 - (lightBrightness * 0.55))
-    readonly property real lightToneR: {
-        if (lightTonePreset === 3) return 1.0; // Pure Snow
-        if (lightTonePreset === 1) return Math.max(0.0, lightBase * 0.92); // Cool Slate (cool sky-tinted alabaster)
-        if (lightTonePreset === 2) return Math.min(1.0, lightBase * 1.07 + 0.03); // Warm Paper (distinct warm cream/ivory)
-        return lightBase; // 0: Neutral Zinc
-    }
-    readonly property real lightToneG: {
-        if (lightTonePreset === 3) return 1.0;
-        if (lightTonePreset === 1) return Math.max(0.0, lightBase * 0.96);
-        if (lightTonePreset === 2) return Math.min(1.0, lightBase * 1.02 + 0.01);
-        return lightBase;
-    }
-    readonly property real lightToneB: {
-        if (lightTonePreset === 3) return 1.0;
-        if (lightTonePreset === 1) return Math.min(1.0, lightBase * 1.08 + 0.03);
-        if (lightTonePreset === 2) return Math.max(0.0, lightBase * 0.89);
-        return Math.min(1.0, lightBase * 1.01);
-    }
+    readonly property color darkToneColor: toneColorFor(backgroundToneName,true,bgDarkness)
+    readonly property color lightToneColor: toneColorFor(backgroundToneName,false,lightBrightness)
+    readonly property real darkToneR: darkToneColor.r
+    readonly property real darkToneG: darkToneColor.g
+    readonly property real darkToneB: darkToneColor.b
+    readonly property real lightToneR: lightToneColor.r
+    readonly property real lightToneG: lightToneColor.g
+    readonly property real lightToneB: lightToneColor.b
 
     // Direct Reactive Color Palette for both Dark & Light Themes
     readonly property color bgApp: isDarkTheme ?
         Qt.rgba(darkToneR, darkToneG, darkToneB, 1.0) :
-        (lightTonePreset === 3 && lightBrightness === 0.0 ? "#ffffff" : Qt.rgba(lightToneR, lightToneG, lightToneB, 1.0))
+        Qt.rgba(lightToneR, lightToneG, lightToneB, 1.0)
 
     readonly property color bgSurface: isDarkTheme ?
         Qt.rgba(Math.min(1.0, darkToneR + 0.04), Math.min(1.0, darkToneG + 0.04), Math.min(1.0, darkToneB + 0.06), enableGlass ? Math.min(0.70, glassOpacity * 0.65) : 1.0) :
@@ -132,9 +116,10 @@ ApplicationWindow {
         Qt.rgba(Math.min(1.0, darkToneR + 0.07), Math.min(1.0, darkToneG + 0.07), Math.min(1.0, darkToneB + 0.10), enableGlass ? Math.min(0.72, glassOpacity * 0.68) : 1.0) :
         (enableGlass ? Qt.rgba(Math.min(1.0, lightToneR - 0.01), Math.min(1.0, lightToneG - 0.01), Math.min(1.0, lightToneB - 0.01), Math.min(0.78, glassOpacity * 0.72)) : Qt.rgba(Math.max(0.0, lightToneR - 0.02), Math.max(0.0, lightToneG - 0.02), Math.max(0.0, lightToneB - 0.02), 1.0))
 
+    // Solid input surfaces keep text legible while surrounding panels retain glass.
     readonly property color bgInput: isDarkTheme ?
-        Qt.rgba(Math.min(1.0, darkToneR + 0.03), Math.min(1.0, darkToneG + 0.03), Math.min(1.0, darkToneB + 0.04), enableGlass ? 0.60 : 1.0) :
-        (enableGlass ? Qt.rgba(Math.min(1.0, lightToneR - 0.02), Math.min(1.0, lightToneG - 0.02), Math.min(1.0, lightToneB - 0.02), 0.65) : Qt.rgba(Math.max(0.0, lightToneR - 0.04), Math.max(0.0, lightToneG - 0.04), Math.max(0.0, lightToneB - 0.04), 1.0))
+        Qt.rgba(Math.min(1.0,darkToneR+0.03),Math.min(1.0,darkToneG+0.03),Math.min(1.0,darkToneB+0.04),1.0) :
+        Qt.rgba(Math.min(1.0,lightToneR+0.02),Math.min(1.0,lightToneG+0.02),Math.min(1.0,lightToneB+0.02),1.0)
 
     readonly property color bgGlassPanel: enableGlass ? 
         (isDarkTheme ? 
@@ -155,9 +140,9 @@ ApplicationWindow {
 
     readonly property color borderFocus: lobeAccent
     readonly property color accentDanger: "#ef4444"
-    readonly property color textPrimary: isDarkTheme ? "#f8f8fc" : "#18181b"
-    readonly property color textSecondary: isDarkTheme ? "#c8c8d2" : "#52525b"
-    readonly property color textMuted: isDarkTheme ? "#9494a0" : "#71717a"
+    readonly property color textPrimary: isDarkTheme ? UI.design.colors.dark.text : UI.design.colors.light.text
+    readonly property color textSecondary: isDarkTheme ? UI.design.colors.dark.secondary : UI.design.colors.light.secondary
+    readonly property color textMuted: isDarkTheme ? (bgDarkness > 0.20 ? "#d0d0da" : UI.design.colors.dark.muted) : UI.design.colors.light.muted
 
     // Typography
     readonly property string fontMain: Qt.platform.os === "windows" ? "Segoe UI" : Qt.application.font.family
@@ -262,11 +247,23 @@ ApplicationWindow {
         return gallery.t(key, fallback !== undefined ? fallback : "")
     }
 
-    function getAccentContrastColor(c) {
-        var clr = c ? c : root.lobeAccent
-        var lum = (clr.r * 0.299 + clr.g * 0.587 + clr.b * 0.114)
-        return lum > 0.60 ? "#0f172a" : "#ffffff"
+    function accentDefinition(name) {
+        const canonical=name.indexOf("GestArt ")===0 ? "Lobe "+name.substring(8) : name;
+        for(let i=0;i<lobeColors.length;i++)if(lobeColors[i].name===canonical)return lobeColors[i];
+        return null;
     }
+    function accentColorFor(option) { return (isDarkTheme?option.dark:option.light) || option.hex; }
+    function chooseAccent(name) {
+        const option=accentDefinition(name);if(!option)return;
+        lobeAccentName=option.name;lobeAccent=accentColorFor(option);
+    }
+    function applySelectedAccent() {
+        const option=accentDefinition(lobeAccentName)||accentDefinition("Lobe Blue");
+        if(option){lobeAccentName=option.name;lobeAccent=accentColorFor(option);}
+    }
+
+    function getAccentContrastColor(c) { return UI.textOn(c ? c : root.lobeAccent) }
+    function sharedIconSource(name,color) { return UI.iconSource(name,color) }
 
     function dismissHoverPreviewDelayed() {
         dismissHoverTimer.restart()
@@ -341,11 +338,21 @@ ApplicationWindow {
         root.isDarkTheme = gallery.loadSetting("ui/isDarkTheme", true)
         root.lobeAccent = gallery.loadSetting("ui/lobeAccent", "#1677ff")
         root.lobeAccentName = gallery.loadSetting("ui/lobeAccentName", "Lobe Blue")
+        root.appearanceReady=true;root.applySelectedAccent()
+        root.glassOpacity=Math.max(0.3,Math.min(1,gallery.loadSetting("ui/glassOpacity",0.72)))
+        root.glassBlurAmount=Math.max(0.1,Math.min(1,gallery.loadSetting("ui/glassBlurAmount",0.82)))
+        root.glassTintStrength=Math.max(0,Math.min(1,gallery.loadSetting("ui/glassTintStrength",0.55)))
+        root.glassChroma=Math.max(0,Math.min(.3,gallery.loadSetting("ui/glassChroma",0.18)))
         root.bgTonePreset = gallery.loadSetting("ui/bgTonePreset", 0)
         if (root.bgTonePreset >= 3) root.bgTonePreset = 0
         root.bgDarkness = gallery.loadSetting("ui/bgDarkness", 0.08)
         root.lightTonePreset = gallery.loadSetting("ui/lightTonePreset", 0)
         root.lightBrightness = gallery.loadSetting("ui/lightBrightness", 0.04)
+        const savedTone=gallery.loadSetting("ui/backgroundToneName","");
+        const legacyTone=root.isDarkTheme?(root.bgTonePreset===1?"slate":root.bgTonePreset===2?"obsidian":"zinc"):(root.lightTonePreset===3?"pure":root.lightTonePreset===2?"charcoal":root.lightTonePreset===1?"slate":"zinc");
+        root.backgroundToneName=root.toneDefinition(savedTone)?savedTone:legacyTone;
+        gallery.saveSetting("ui/backgroundToneName",root.backgroundToneName);
+        root.updateApplicationIcon();
         root.enableGlass = gallery.loadSetting("ui/enableGlass", true)
         root.enableSpecular = gallery.loadSetting("ui/enableSpecular", true)
         root.enableAurora = gallery.loadSetting("ui/enableAurora", true)
@@ -378,13 +385,21 @@ ApplicationWindow {
         }
     }
 
-    onIsDarkThemeChanged: gallery.saveSetting("ui/isDarkTheme", isDarkTheme)
+    onIsDarkThemeChanged: {gallery.saveSetting("ui/isDarkTheme", isDarkTheme);if(appearanceReady)applySelectedAccent()}
     onLobeAccentChanged: gallery.saveSetting("ui/lobeAccent", lobeAccent)
-    onLobeAccentNameChanged: gallery.saveSetting("ui/lobeAccentName", lobeAccentName)
+    function updateApplicationIcon() {
+        const option=accentDefinition(lobeAccentName);
+        if(option&&typeof appIdentity!=="undefined")appIdentity.setAccent(option.key);
+    }
+    onLobeAccentNameChanged: {gallery.saveSetting("ui/lobeAccentName",lobeAccentName);updateApplicationIcon()}
     onBgTonePresetChanged: gallery.saveSetting("ui/bgTonePreset", bgTonePreset)
     onBgDarknessChanged: gallery.saveSetting("ui/bgDarkness", bgDarkness)
     onLightTonePresetChanged: gallery.saveSetting("ui/lightTonePreset", lightTonePreset)
     onLightBrightnessChanged: gallery.saveSetting("ui/lightBrightness", lightBrightness)
+    onGlassOpacityChanged: gallery.saveSetting("ui/glassOpacity",glassOpacity)
+    onGlassBlurAmountChanged: gallery.saveSetting("ui/glassBlurAmount",glassBlurAmount)
+    onGlassTintStrengthChanged: gallery.saveSetting("ui/glassTintStrength",glassTintStrength)
+    onGlassChromaChanged: gallery.saveSetting("ui/glassChroma",glassChroma)
     onEnableGlassChanged: gallery.saveSetting("ui/enableGlass", enableGlass)
     onEnableSpecularChanged: gallery.saveSetting("ui/enableSpecular", enableSpecular)
     onAutoColumnsChanged: gallery.saveSetting("ui/autoColumns", autoColumns)
@@ -411,6 +426,17 @@ ApplicationWindow {
     readonly property bool galleryShortcutsEnabled: !settingsModalOpen && !dialogOpen && !isInputFocused &&
                                                     (activeFocusItem === mainContent || activeFocusItem === null)
     property string pendingRevealPath: ""
+    readonly property bool libraryBusy: gallery.isLoading || gallery.isFiltering
+    readonly property string libraryStatusText: {
+        if (gallery.isFiltering && !gallery.isLoading) return root.tr("ux.filtering", "Updating results…")
+        if (gallery.isLoading) {
+            var percent = Math.round(gallery.scanProgress * 100)
+            return (gallery.scanStatus || root.tr("status.scanning", "Scanning...")) + (percent > 0 ? " (" + percent + "%)" : "")
+        }
+        if (gallery.totalCount > 0)
+            return root.tr("status.library_indexed", "Library indexed:") + " " + gallery.totalCount + " " + root.tr("gallery.items", "items")
+        return gallery.scanStatus || (gallery.totalCount > 0 ? root.tr("status.ready", "Ready") : root.tr("status.idle", "Idle"))
+    }
 
     function resetFilters() {
         searchInput.text = ""
@@ -656,6 +682,165 @@ ApplicationWindow {
     }
 
     // ================= CUSTOM STYLED REUSABLE CONTROLS =================
+    component InspectorWelcome: ColumnLayout {
+        id: welcomePanel
+        objectName: "inspectorWelcome"
+        Layout.fillWidth: true
+        spacing: 24
+
+        Text {
+            text: root.tr("inspector.title", "Inspector")
+            color: root.textSecondary
+            font.family: root.fontMain; font.pixelSize: 16; font.weight: Font.DemiBold
+            Layout.topMargin: 16
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: welcomeContent.implicitHeight + 48
+            radius: 12
+            color: root.bgCard
+            border.color: root.borderSubtle
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
+            }
+            ColumnLayout {
+                id: welcomeContent
+                anchors.fill: parent; anchors.margins: 24
+                spacing: 12
+                Item {
+                    Layout.preferredWidth: 72; Layout.preferredHeight: 64
+                    Rectangle {
+                        width: 48; height: 48; x: 16; y: 4; rotation: 10; radius: 10
+                        color: Qt.rgba(root.auroraColor3.r, root.auroraColor3.g, root.auroraColor3.b, 0.12)
+                        border.color: root.borderSubtle
+                    }
+                    Rectangle {
+                        width: 48; height: 48; x: 4; y: 12; radius: 10
+                        color: Qt.rgba(root.lobeAccent.r, root.lobeAccent.g, root.lobeAccent.b, 0.12)
+                        border.color: Qt.rgba(root.lobeAccent.r, root.lobeAccent.g, root.lobeAccent.b, 0.35)
+                        LobeIcon { anchors.centerIn: parent; name: "image"; size: 24; color: root.lobeAccent }
+                    }
+                }
+                Text {
+                    objectName: "inspectorWelcomeTitle"
+                    Layout.fillWidth: true
+                    text: root.tr(gallery.currentFolder ? "ux.inspect_select" : "ux.inspect_start",
+                                  gallery.currentFolder ? "Select an image" : "Get to know your images")
+                    color: root.textPrimary
+                    font.family: root.fontMain; font.pixelSize: 20; font.weight: Font.DemiBold
+                    wrapMode: Text.WordWrap
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: root.tr(gallery.currentFolder ? "ux.inspect_select_hint" : "ux.inspect_start_hint",
+                                  gallery.currentFolder ? "Click a thumbnail. Its preview, prompt and generation settings will appear here." : "Open a folder to explore your images and the details behind each generation.")
+                    color: root.textSecondary
+                    font.family: root.fontMain; font.pixelSize: 12
+                    lineHeight: 1.4; wrapMode: Text.WordWrap
+                }
+                LobeButton {
+                    objectName: "inspectorWelcomeAction"
+                    Layout.fillWidth: true; Layout.topMargin: 8
+                    type: "primary"
+                    iconName: gallery.filteredCount > 0 ? "image" : (root.hasActiveFilters ? "filter" : "folder-open")
+                    text: gallery.filteredCount > 0 ? root.tr("ux.inspect_first", "Inspect first image") :
+                          (root.hasActiveFilters ? root.tr("ux.reset_filters", "Reset filters") : root.tr("ux.open_folder", "Open folder"))
+                    enabled: !gallery.isLoading && !gallery.isFiltering
+                    onClicked: {
+                        if (gallery.filteredCount > 0) {
+                            gallery.selectSingle(0)
+                            root.navigateGallery(0)
+                            root.focusMain()
+                        } else if (root.hasActiveFilters) root.resetFilters()
+                        else folderDialog.open()
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true; spacing: 16
+            Text {
+                text: root.tr("ux.inspect_details", "Image details, at a glance")
+                color: root.textPrimary; font.family: root.fontMain; font.pixelSize: 14; font.weight: Font.DemiBold
+            }
+            Repeater {
+                model: [
+                    { icon: "image", title: root.tr("ux.inspect_preview", "Preview & file"), hint: root.tr("ux.inspect_preview_hint", "Dimensions, size and location") },
+                    { icon: "sparkles", title: root.tr("ux.inspect_prompt", "Prompt & generation"), hint: root.tr("ux.inspect_prompt_hint", "Prompt, model and saved parameters") },
+                    { icon: "tag", title: root.tr("ux.inspect_tags", "Tags"), hint: root.tr("ux.inspect_tags_hint", "Explore and copy image tags") }
+                ]
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true; spacing: 12
+                    LobeIcon { name: modelData.icon; size: 20; color: root.textMuted }
+                    ColumnLayout {
+                        Layout.fillWidth: true; spacing: 4
+                        Text { text: modelData.title; color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 12 }
+                        Text { Layout.fillWidth: true; text: modelData.hint; color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12; wrapMode: Text.WordWrap }
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true; spacing: 8
+            visible: gallery.currentFolder !== ""
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                LobeIcon { name: "folder"; size: 14; color: root.textMuted }
+                Text {
+                    Layout.fillWidth: true
+                    text: gallery.selectedSubfolder === "All" ? root.tr("sidebar.all_folders", "All folders") : gallery.selectedSubfolder
+                    color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 12; elide: Text.ElideMiddle
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Repeater {
+                    model: [
+                        { value: gallery.filteredCount, label: root.tr("ux.inspect_visible", "In this view") },
+                        { value: gallery.totalCount, label: root.tr("ux.inspect_total", "In the library") }
+                    ]
+                    delegate: Rectangle {
+                        required property var modelData
+                        Layout.fillWidth: true; implicitHeight: 80
+                        radius: 8; color: root.bgCard; border.color: root.borderSubtle
+                        ColumnLayout {
+                            anchors.fill: parent; anchors.margins: 12; spacing: 4
+                            Text { text: modelData.value; color: root.textPrimary; font.family: root.fontMain; font.pixelSize: 20; font.weight: Font.DemiBold }
+                            Text { text: modelData.label; color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
+                        }
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true; spacing: 12
+            Repeater {
+                model: [
+                    { key: "Space", text: root.tr("ux.inspect_fullscreen", "Open selected image") },
+                    { key: "Ctrl / Shift", text: root.tr("ux.inspect_multi", "Select several images") }
+                ]
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true; spacing: 12
+                    Rectangle {
+                        implicitWidth: keyText.implicitWidth + 16; implicitHeight: 24
+                        radius: 4; color: root.bgCard; border.color: root.borderSubtle
+                        Text { id: keyText; anchors.centerIn: parent; text: modelData.key; color: root.textSecondary; font.family: root.fontMono; font.pixelSize: 10 }
+                    }
+                    Text { Layout.fillWidth: true; text: modelData.text; color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12; wrapMode: Text.WordWrap }
+                }
+            }
+        }
+        Item { implicitHeight: 8 }
+    }
+
     component LobeSlider: Slider {
         id: sliderControl
         implicitHeight: 24
@@ -722,10 +907,10 @@ ApplicationWindow {
             border.width: switchControl.activeFocus ? 2 : 1
             clip: true
 
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 3; anchors.rightMargin: 3
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
 
             Rectangle {
@@ -774,83 +959,8 @@ ApplicationWindow {
         implicitWidth: size
         implicitHeight: size
 
-        // ================= LOBE UI TABLER ICON SVG DATA =================
-        // Icons sourced from https://tabler.io/icons (MIT License)
-        readonly property string svgData: {
-            var c = encodeURIComponent("" + lobeIcon.color)
-            var s = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='" + c + "' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
-            var e = "</svg>"
-            if (name === "folder") {
-                return s + "<path d='M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2' />" + e
-            } else if (name === "folder-open") {
-                return s + "<path d='M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2' />" + e
-            } else if (name === "box") {
-                return s + "<path d='M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5' /><path d='M12 12l8 -4.5' /><path d='M12 12l0 9' /><path d='M12 12l-8 -4.5' />" + e
-            } else if (name === "clock") {
-                return s + "<path d='M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0' /><path d='M12 7v5l3 3' />" + e
-            } else if (name === "calendar") {
-                return s + "<path d='M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12' /><path d='M16 3v4' /><path d='M8 3v4' /><path d='M4 11h16' /><path d='M11 15h1' /><path d='M12 15v3' />" + e
-            } else if (name === "layers") {
-                return s + "<path d='M12 6l-8 4l8 4l8 -4l-8 -4' /><path d='M4 14l8 4l8 -4' />" + e
-            } else if (name === "tag") {
-                return s + "<path d='M6.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0' /><path d='M3 6v5.172a2 2 0 0 0 .586 1.414l7.71 7.71a2.41 2.41 0 0 0 3.408 0l5.592 -5.592a2.41 2.41 0 0 0 0 -3.408l-7.71 -7.71a2 2 0 0 0 -1.414 -.586h-5.172a3 3 0 0 0 -3 3' />" + e
-            } else if (name === "search") {
-                return s + "<path d='M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0' /><path d='M21 21l-6 -6' />" + e
-            } else if (name === "settings") {
-                return s + "<path d='M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065' /><path d='M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0' />" + e
-            } else if (name === "panel-left") {
-                return s + "<path d='M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12' /><path d='M9 4l0 16' />" + e
-            } else if (name === "panel-right") {
-                return s + "<path d='M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12' /><path d='M15 4l0 16' />" + e
-            } else if (name === "trash") {
-                return s + "<path d='M4 7l16 0' /><path d='M10 11l0 6' /><path d='M14 11l0 6' /><path d='M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12' /><path d='M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3' />" + e
-            } else if (name === "moon") {
-                return s + "<path d='M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008' />" + e
-            } else if (name === "sun") {
-                return s + "<path d='M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0' /><path d='M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7' />" + e
-            } else if (name === "copy") {
-                return s + "<path d='M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666' /><path d='M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1' />" + e
-            } else if (name === "x" || name === "close") {
-                return s + "<path d='M18 6l-12 12' /><path d='M6 6l12 12' />" + e
-            } else if (name === "maximize") {
-                return s + "<path d='M4 8v-2a2 2 0 0 1 2 -2h2' /><path d='M4 16v2a2 2 0 0 0 2 2h2' /><path d='M16 4h2a2 2 0 0 1 2 2v2' /><path d='M16 20h2a2 2 0 0 0 2 -2v-2' />" + e
-            } else if (name === "minimize") {
-                return s + "<path d='M15 19v-2a2 2 0 0 1 2 -2h2' /><path d='M15 5v2a2 2 0 0 0 2 2h2' /><path d='M5 15h2a2 2 0 0 1 2 2v2' /><path d='M5 9h2a2 2 0 0 0 2 -2v-2' />" + e
-            } else if (name === "chevron-down") {
-                return s + "<path d='M6 9l6 6l6 -6' />" + e
-            } else if (name === "chevron-up") {
-                return s + "<path d='M6 15l6 -6l6 6' />" + e
-            } else if (name === "check") {
-                return s + "<path d='M5 12l5 5l10 -10' />" + e
-            } else if (name === "filter") {
-                return s + "<path d='M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227' />" + e
-            } else if (name === "sort") {
-                return s + "<path d='M3 9l4 -4l4 4m-4 -4v14' /><path d='M21 15l-4 4l-4 -4m4 4v-14' />" + e
-            } else if (name === "zoom-in") {
-                return s + "<path d='M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0' /><path d='M7 10l6 0' /><path d='M10 7l0 6' /><path d='M21 21l-6 -6' />" + e
-            } else if (name === "zoom-out") {
-                return s + "<path d='M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0' /><path d='M7 10l6 0' /><path d='M21 21l-6 -6' />" + e
-            } else if (name === "rotate-cw") {
-                return s + "<path d='M4.05 11a8 8 0 1 1 .5 4m-.5 5v-5h5' />" + e
-            } else if (name === "info") {
-                return s + "<path d='M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0' /><path d='M12 9h.01' /><path d='M11 12h1v4h1' />" + e
-            } else if (name === "sparkles") {
-                return s + "<path d='M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2m0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2m-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6' />" + e
-            } else if (name === "external-link") {
-                return s + "<path d='M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6' /><path d='M11 13l9 -9' /><path d='M15 4h5v5' />" + e
-            } else if (name === "minus") {
-                return s + "<path d='M5 12l14 0' />" + e
-            } else if (name === "plus") {
-                return s + "<path d='M12 5l0 14' /><path d='M5 12l14 0' />" + e
-            } else if (name === "chevron-left") {
-                return s + "<path d='M15 6l-6 6l6 6' />" + e
-            } else if (name === "chevron-right") {
-                return s + "<path d='M9 6l6 6l-6 6' />" + e
-            } else if (name === "image" || name === "photo") {
-                return s + "<path d='M15 8h.01' /><path d='M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z' /><path d='M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5' /><path d='M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3' />" + e
-            }
-            return ""
-        }
+        // Both viewers use the same 24px Tabler SVG catalog and 2px stroke.
+        readonly property string svgData: UI.iconSource(name,color)
 
         Image {
             anchors.fill: parent
@@ -863,14 +973,7 @@ ApplicationWindow {
             cache: true
         }
 
-        Text {
-            anchors.centerIn: parent
-            text: lobeIcon.svgData === "" ? lobeIcon.name : ""
-            color: lobeIcon.color
-            font.pixelSize: lobeIcon.size
-            font.family: root.fontMain
-            visible: lobeIcon.svgData === ""
-        }
+
     }
 
     // Paint the soft curtain only when its size or palette changes; animate the cached texture.
@@ -929,10 +1032,10 @@ ApplicationWindow {
         // Accent color override (defaults to root.lobeAccent)
         property color accentColor: root.lobeAccent
 
-        implicitHeight: size === "small" ? 28 : (size === "large" ? 40 : 34)
-        implicitWidth: Math.max(implicitHeight, btnRow.implicitWidth + (size === "small" ? 16 : (size === "large" ? 24 : 20)))
-        Layout.minimumWidth: implicitHeight
-        leftPadding: size === "small" ? 8 : 10
+        implicitHeight: size === "small" ? UI.design.metrics.compact : (size === "large" ? UI.design.metrics.large : UI.design.metrics.control)
+        implicitWidth: Math.max(implicitHeight, btnRow.implicitWidth + leftPadding + rightPadding)
+        Layout.minimumWidth: type === "primary" && iconName !== "" ? implicitWidth : implicitHeight
+        leftPadding: size === "small" ? 8 : 12
         rightPadding: leftPadding
         focusPolicy: Qt.StrongFocus
         Accessible.name: text
@@ -941,13 +1044,13 @@ ApplicationWindow {
         font.pixelSize: size === "small" ? 12 : 13
         font.weight: type === "primary" ? Font.DemiBold : Font.Medium
 
-        scale: lobeBtn.down ? 0.97 : (lobeBtn.hovered ? 1.01 : 1.0)
+        scale: lobeBtn.down ? 0.98 : 1.0
         Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutQuad } }
         opacity: lobeBtn.enabled ? 1.0 : 0.45
 
         background: Rectangle {
             id: bgRect
-            radius: lobeBtn.size === "small" ? 5 : (lobeBtn.size === "large" ? 8 : 6)
+            radius: UI.design.metrics.radius
             clip: true
 
             readonly property color baseColor: {
@@ -981,21 +1084,17 @@ ApplicationWindow {
             border.width: lobeBtn.visualFocus ? 2 : ((lobeBtn.type === "ghost" || lobeBtn.type === "text") ? 0 : 1)
 
             // Specular Top Edge Highlight Line (Lobe UI Signature)
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 1
-                anchors.leftMargin: 3
-                anchors.rightMargin: 3
-                color: lobeBtn.type === "primary" ? Qt.rgba(1, 1, 1, 0.35) : root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: lobeBtn.type === "primary" ? Qt.rgba(1, 1, 1, 0.35) : root.borderSpecular
                 visible: root.enableSpecular && lobeBtn.type !== "ghost" && lobeBtn.type !== "text"
             }
         }
 
         contentItem: RowLayout {
             id: btnRow
-            spacing: 6
+            spacing: UI.design.metrics.gap
 
             LobeIcon {
                 name: lobeBtn.iconName
@@ -1005,7 +1104,7 @@ ApplicationWindow {
                     if (lobeBtn.type === "danger") return root.isDarkTheme ? "#f87171" : "#dc2626"
                     return root.textPrimary
                 }
-                size: lobeBtn.font.pixelSize + 3
+                size: UI.design.metrics.icon
             }
 
             Text {
@@ -1045,7 +1144,7 @@ ApplicationWindow {
 
         signal clicked()
 
-        implicitWidth: size === "small" ? 28 : (size === "large" ? 40 : 34)
+        implicitWidth: size === "small" ? UI.design.metrics.compact : (size === "large" ? UI.design.metrics.large : UI.design.metrics.control)
         implicitHeight: implicitWidth
         activeFocusOnTab: true
         Accessible.role: Accessible.Button
@@ -1054,14 +1153,14 @@ ApplicationWindow {
         Keys.onSpacePressed: if (enabled) clicked()
         Keys.onReturnPressed: if (enabled) clicked()
 
-        scale: iconMouse.pressed ? 0.93 : (iconMouse.containsMouse ? 1.05 : 1.0)
+        scale: iconMouse.pressed ? 0.98 : 1.0
         Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutQuad } }
         opacity: enabled ? 1.0 : 0.45
 
         Rectangle {
             id: iconBg
             anchors.fill: parent
-            radius: width / 2
+            radius: UI.design.metrics.radius
             clip: true
 
             readonly property color baseColor: {
@@ -1104,7 +1203,7 @@ ApplicationWindow {
                     if (iconMouse.containsMouse) return root.textPrimary
                     return root.textSecondary
                 }
-                size: actionIcon.size === "small" ? 13 : (actionIcon.size === "large" ? 20 : 16)
+                size: actionIcon.size === "small" ? UI.design.metrics.smallIcon : (actionIcon.size === "large" ? 20 : UI.design.metrics.icon)
             }
         }
 
@@ -1220,7 +1319,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     text: lobeTag.text
-                    color: lobeTag.checked ? "#ffffff" : root.textPrimary
+                    color: lobeTag.checked ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                     font.family: root.fontMain
                     font.pixelSize: lobeTag.size === "middle" ? 13 : 12
                     font.weight: lobeTag.checked ? Font.DemiBold : Font.Normal
@@ -1240,7 +1339,7 @@ ApplicationWindow {
                 // Optional Close "×" Button
                 Text {
                     text: "×"
-                    color: lobeTag.checked ? "#ffffff" : (closeTagMouse.containsMouse ? root.textPrimary : root.textMuted)
+                    color: lobeTag.checked ? root.getAccentContrastColor(root.lobeAccent) : (closeTagMouse.containsMouse ? root.textPrimary : root.textMuted)
                     font.family: root.fontMain
                     font.pixelSize: 12
                     visible: lobeTag.closable
@@ -1322,10 +1421,10 @@ ApplicationWindow {
             border.width: 1
             radius: 8
             clip: true
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 4; anchors.rightMargin: 4
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
         }
 
@@ -1668,10 +1767,10 @@ ApplicationWindow {
             border.color: borderSubtle
             radius: 8
             clip: true
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 6; anchors.rightMargin: 6
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
         }
 
@@ -1735,10 +1834,10 @@ ApplicationWindow {
             border.color: borderSubtle
             radius: 8
             clip: true
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 6; anchors.rightMargin: 6
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
         }
 
@@ -1789,6 +1888,7 @@ ApplicationWindow {
 
     Dialog {
         id: operationErrorDialog
+        objectName: "operationErrorDialog"
         property string message: ""
         title: root.tr("common.error", "Operation failed")
         modal: true
@@ -1834,8 +1934,9 @@ ApplicationWindow {
     }
     Connections {
         target: tagAuto
-        function onLoadFailed(message) {
-            operationErrorDialog.message = message
+        function onLoadFailed(message, translationKey, detail) {
+            var translated = translationKey ? root.tr(translationKey, message) : message
+            operationErrorDialog.message = detail ? translated.arg(detail) : translated
             operationErrorDialog.open()
         }
     }
@@ -1850,12 +1951,17 @@ ApplicationWindow {
 
         // Full-window glow fades continuously; fixed paths move without being rebuilt each frame.
         Item {
+            id: backdropScene
+            objectName: "glassBackdropScene"
+            anchors.fill: parent
+            Rectangle { anchors.fill: parent; color: root.bgApp }
+        Item {
             id: auroraContainer
             objectName: "auroraBackground"
             anchors.fill: parent
             z: 0
             visible: root.enableAurora
-            opacity: root.auroraIntensity * (root.isDarkTheme ? 0.92 : 0.36)
+            opacity: root.auroraIntensity * (root.isDarkTheme ? 0.92 : 1.0)
             clip: true
             property real phase: 0
             readonly property real angle: phase * Math.PI * 2
@@ -1879,9 +1985,9 @@ ApplicationWindow {
                         centerX: auroraCenterGlow.width * 0.5; centerY: auroraCenterGlow.height * 0.08
                         focalX: centerX; focalY: centerY
                         centerRadius: Math.max(auroraCenterGlow.width * 0.42, auroraCenterGlow.height * 0.72)
-                        GradientStop { position: 0.00; color: Qt.rgba(root.auroraColor1.r, root.auroraColor1.g, root.auroraColor1.b, 0.4) }
-                        GradientStop { position: 0.28; color: Qt.rgba(root.auroraColor1.r, root.auroraColor1.g, root.auroraColor1.b, 0.232) }
-                        GradientStop { position: 0.62; color: Qt.rgba(root.auroraColor1.r, root.auroraColor1.g, root.auroraColor1.b, 0.060) }
+                        GradientStop { position: 0.00; color: Qt.rgba(root.auroraColor1.r, root.auroraColor1.g, root.auroraColor1.b, (root.isDarkTheme?0.4:0.66)) }
+                        GradientStop { position: 0.28; color: Qt.rgba(root.auroraColor1.r, root.auroraColor1.g, root.auroraColor1.b, (root.isDarkTheme?0.232:0.3828)) }
+                        GradientStop { position: 0.62; color: Qt.rgba(root.auroraColor1.r, root.auroraColor1.g, root.auroraColor1.b, (root.isDarkTheme?0.060:0.09899999999999999)) }
                         GradientStop { position: 1.00; color: "transparent" }
                     }
                     startX: 0; startY: 0
@@ -1904,9 +2010,9 @@ ApplicationWindow {
                         centerX: auroraWestGlow.width * 0.38; centerY: auroraWestGlow.height * 0.1
                         focalX: centerX; focalY: centerY
                         centerRadius: Math.max(auroraWestGlow.width * 0.52, auroraWestGlow.height * 0.72)
-                        GradientStop { position: 0.00; color: Qt.rgba(root.auroraColor2.r, root.auroraColor2.g, root.auroraColor2.b, 0.32) }
-                        GradientStop { position: 0.28; color: Qt.rgba(root.auroraColor2.r, root.auroraColor2.g, root.auroraColor2.b, 0.186) }
-                        GradientStop { position: 0.62; color: Qt.rgba(root.auroraColor2.r, root.auroraColor2.g, root.auroraColor2.b, 0.048) }
+                        GradientStop { position: 0.00; color: Qt.rgba(root.auroraColor2.r, root.auroraColor2.g, root.auroraColor2.b, (root.isDarkTheme?0.32:0.528)) }
+                        GradientStop { position: 0.28; color: Qt.rgba(root.auroraColor2.r, root.auroraColor2.g, root.auroraColor2.b, (root.isDarkTheme?0.186:0.3069)) }
+                        GradientStop { position: 0.62; color: Qt.rgba(root.auroraColor2.r, root.auroraColor2.g, root.auroraColor2.b, (root.isDarkTheme?0.048:0.07919999999999999)) }
                         GradientStop { position: 1.00; color: "transparent" }
                     }
                     startX: 0; startY: 0
@@ -1959,6 +2065,7 @@ ApplicationWindow {
                 startColor: root.auroraColor2; endColor: root.auroraColor4; strength: 0.20
             }
         }
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -1968,35 +2075,22 @@ ApplicationWindow {
             // ---------------- 2.1 PRIMARY TOOLBAR (Frosted Glass & Custom Controls) ----------------
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 58
-                color: root.enableGlass ? 
-                    (root.isDarkTheme ? 
-                        Qt.rgba(root.darkToneR + 0.03, root.darkToneG + 0.03, root.darkToneB + 0.05, Math.min(0.62, root.glassOpacity * 0.60)) : 
-                        Qt.rgba(root.lightToneR, root.lightToneG, root.lightToneB, Math.min(0.68, root.glassOpacity * 0.65))) : 
-                    bgSurface
-                border.color: root.enableGlass ? 
-                    (root.isDarkTheme ? Qt.rgba(1.0, 1.0, 1.0, 0.12) : Qt.rgba(0.0, 0.0, 0.0, 0.09)) : 
-                    borderSubtle
-                border.width: 1
+                Layout.preferredHeight: 56
+                color: root.enableGlass ? "transparent" : root.bgSurface
+                border.color: root.enableGlass ? "transparent" : root.borderSubtle
+                border.width: root.enableGlass ? 0 : 1
+                FrostedPanel {
+                    objectName: "toolbarGlass"
+                    anchors.fill: parent; radius: 0
+                    sourceScene: backdropScene; visible: root.enableGlass; glassEnabled: root.enableGlass
+                    dark: root.isDarkTheme; specular: root.enableSpecular
+                    tintColor: root.bgApp; accent: root.lobeAccent
+                    amount: root.glassBlurAmount; opacityLevel: root.glassOpacity
+                    tintStrength: root.glassTintStrength; chroma: root.glassChroma
+                    captureLive: root.active && root.visible && !root.settingsModalOpen
+                }
+
                 z: 100
-
-                // Subtle Glass Ambient Sheen (Upper soft gradient reflection)
-                Rectangle {
-                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-                    height: 24
-                    clip: true
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.35) }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                    visible: root.enableGlass
-                }
-
-                // Specular Edge
-                Rectangle {
-                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                    color: root.borderSpecular
-                }
 
                 RowLayout {
                     anchors.fill: parent
@@ -2004,21 +2098,11 @@ ApplicationWindow {
                     anchors.rightMargin: 16
                     spacing: 12
 
-                    // Brand: galIMV
-                    RowLayout {
-                        spacing: 8
-                        Rectangle {
-                            width: 10; height: 10; radius: 5
-                            color: root.lobeAccent
-                        }
-                        Text {
-                            text: "galIMV"
-                            color: textPrimary
-                            font.family: fontMain
-                            font.pixelSize: 14
-                            font.weight: Font.Bold
-                            font.letterSpacing: 0.5
-                        }
+                    BrandBadge {
+                        accentColor: root.lobeAccent
+                        primaryColor: root.textPrimary
+                        backgroundColor: root.bgSurface
+                        fontFamily: root.fontMain
                     }
 
                     // Left Sidebar Toggle (Lobe Action Icon)
@@ -2055,10 +2139,10 @@ ApplicationWindow {
                             radius: 6
                             clip: true
 
-                            Rectangle {
-                                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                anchors.leftMargin: 4; anchors.rightMargin: 4
-                                color: root.borderSpecular
+                            SurfaceSheen {
+                                anchors.fill: parent
+                                cornerRadius: parent.radius || 0
+                                highlightColor: root.borderSpecular
                             }
 
                             RowLayout {
@@ -2200,10 +2284,10 @@ ApplicationWindow {
                                 border.width: 1
                                 radius: 8
                                 clip: true
-                                Rectangle {
-                                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                    anchors.leftMargin: 6; anchors.rightMargin: 6
-                                    color: root.borderSpecular
+                                SurfaceSheen {
+                                    anchors.fill: parent
+                                    cornerRadius: parent.radius || 0
+                                    highlightColor: root.borderSpecular
                                 }
                             }
 
@@ -2311,6 +2395,7 @@ ApplicationWindow {
 
             // Library context and view controls share a separate, compact row.
             Rectangle {
+                id: libraryContextBar
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
                 color: root.bgSurface
@@ -2331,6 +2416,19 @@ ApplicationWindow {
                         ToolTip.visible: libraryPathMouse.containsMouse && gallery.currentFolder !== ""
                         ToolTip.text: gallery.currentFolder
                         MouseArea { id: libraryPathMouse; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
+                    }
+                    LobeButton {
+                        id: libraryStatusButton
+                        objectName: "libraryStatusButton"
+                        size: "small"; type: root.libraryBusy ? "default" : "ghost"
+                        iconName: root.libraryBusy ? "clock" : "image"
+                        text: root.libraryBusy ?
+                            (gallery.isLoading ? Math.round(gallery.scanProgress * 100) + "%" : root.tr("ux.updating_short", "Updating…")) :
+                            gallery.filteredCount + " / " + gallery.totalCount
+                        Accessible.name: root.tr("ux.library_status", "Library status") + ": " + root.libraryStatusText
+                        ToolTip.visible: hovered
+                        ToolTip.text: root.libraryStatusText + "\n" + gallery.filteredCount + " " + root.tr("status.matching", "matching") + " / " + gallery.totalCount + " " + root.tr("status.total", "total")
+                        onClicked: libraryStatusPopup.open()
                     }
                     // Custom Styled Model ComboBox
                     RowLayout {
@@ -2391,10 +2489,10 @@ ApplicationWindow {
                                 border.width: 1
                                 radius: 6
                                 clip: true
-                                Rectangle {
-                                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                    anchors.leftMargin: 4; anchors.rightMargin: 4
-                                    color: root.borderSpecular
+                                SurfaceSheen {
+                                    anchors.fill: parent
+                                    cornerRadius: parent.radius || 0
+                                    highlightColor: root.borderSpecular
                                 }
                             }
 
@@ -2433,10 +2531,10 @@ ApplicationWindow {
                                     border.width: 1
                                     radius: 8
                                     clip: true
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                     }
                                 }
                                 contentItem: ListView {
@@ -2538,10 +2636,10 @@ ApplicationWindow {
                                 border.width: 1
                                 radius: 6
                                 clip: true
-                                Rectangle {
-                                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                    anchors.leftMargin: 4; anchors.rightMargin: 4
-                                    color: root.borderSpecular
+                                SurfaceSheen {
+                                    anchors.fill: parent
+                                    cornerRadius: parent.radius || 0
+                                    highlightColor: root.borderSpecular
                                 }
                             }
 
@@ -2574,10 +2672,10 @@ ApplicationWindow {
                                     border.width: 1
                                     radius: 8
                                     clip: true
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                     }
                                 }
                                 contentItem: ListView {
@@ -2651,10 +2749,10 @@ ApplicationWindow {
                                 border.width: 1
                                 radius: 6
                                 clip: true
-                                Rectangle {
-                                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                    anchors.leftMargin: 4; anchors.rightMargin: 4
-                                    color: root.borderSpecular
+                                SurfaceSheen {
+                                    anchors.fill: parent
+                                    cornerRadius: parent.radius || 0
+                                    highlightColor: root.borderSpecular
                                 }
                             }
 
@@ -2687,10 +2785,10 @@ ApplicationWindow {
                                     border.width: 1
                                     radius: 8
                                     clip: true
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                     }
                                 }
                                 contentItem: ListView {
@@ -2729,6 +2827,31 @@ ApplicationWindow {
                         onClicked: root.resetFilters()
                     }
                 }
+                ProgressBar {
+                    objectName: "libraryProgress"
+                    anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+                    height: 2
+                    visible: root.libraryBusy
+                    value: gallery.scanProgress
+                    indeterminate: gallery.isFiltering && !gallery.isLoading
+                    background: Rectangle { color: root.borderSubtle }
+                    contentItem: Item {
+                        clip: true
+                        Rectangle {
+                            id: libraryProgressFill
+                            height: parent.height
+                            width: gallery.isLoading ? parent.width * Math.max(0, Math.min(1, gallery.scanProgress)) : parent.width * 0.28
+                            color: root.lobeAccent
+                            x: gallery.isLoading ? 0 : (parent.width + width) * filterProgressAnimation.progress - width
+                            QtObject { id: filterProgressAnimation; property real progress: 0 }
+                            NumberAnimation {
+                                target: filterProgressAnimation; property: "progress"; from: 0; to: 1
+                                duration: 1100; loops: Animation.Infinite
+                                running: gallery.isFiltering && !gallery.isLoading && root.visible
+                            }
+                        }
+                    }
+                }
             }
 
             // ---------------- 2.3 MAIN WORKSPACE ----------------
@@ -2756,34 +2879,18 @@ ApplicationWindow {
                     Behavior on opacity {
                         NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
                     }
-                    color: root.enableGlass ? 
-                        (root.isDarkTheme ? 
-                            Qt.rgba(root.darkToneR + 0.03, root.darkToneG + 0.03, root.darkToneB + 0.05, Math.min(0.60, root.glassOpacity * 0.58)) : 
-                            Qt.rgba(root.lightToneR, root.lightToneG, root.lightToneB, Math.min(0.66, root.glassOpacity * 0.62))) : 
-                        bgSurface
-                    border.color: root.enableGlass ? 
-                        (root.isDarkTheme ? Qt.rgba(1.0, 1.0, 1.0, 0.12) : Qt.rgba(0.0, 0.0, 0.0, 0.09)) : 
-                        root.borderSubtle
-                    border.width: 1
-
-                    // Subtle Glass Ambient Sheen (Upper soft gradient reflection)
-                    Rectangle {
-                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-                        height: 90
-                        radius: parent.radius
-                        clip: true
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.35) }
-                            GradientStop { position: 1.0; color: "transparent" }
-                        }
-                        visible: root.enableGlass
-                    }
-
-                    // Specular Highlight
-                    Rectangle {
-                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                        anchors.leftMargin: 10; anchors.rightMargin: 10
-                        color: root.borderSpecular
+                    color: root.enableGlass ? "transparent" : root.bgSurface
+                    border.color: root.enableGlass ? "transparent" : root.borderSubtle
+                    border.width: root.enableGlass ? 0 : 1
+                    FrostedPanel {
+                        objectName: "leftSidebarGlass"
+                        anchors.fill: parent; radius: parent.radius
+                        sourceScene: backdropScene; visible: root.enableGlass; glassEnabled: root.enableGlass
+                        dark: root.isDarkTheme; specular: root.enableSpecular
+                        tintColor: root.bgApp; accent: root.lobeAccent
+                        amount: root.glassBlurAmount; opacityLevel: root.glassOpacity
+                        tintStrength: root.glassTintStrength; chroma: root.glassChroma
+                        captureLive: root.active && root.visible && !root.settingsModalOpen
                     }
 
                     ColumnLayout {
@@ -2800,10 +2907,10 @@ ApplicationWindow {
                             border.color: root.borderSubtle
                             clip: true
 
-                            Rectangle {
-                                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                anchors.leftMargin: 6; anchors.rightMargin: 6
-                                color: root.borderSpecular
+                            SurfaceSheen {
+                                anchors.fill: parent
+                                cornerRadius: parent.radius || 0
+                                highlightColor: root.borderSpecular
                             }
 
                             RowLayout {
@@ -2936,7 +3043,7 @@ ApplicationWindow {
                                                 text: modelData.name
                                                 Layout.fillWidth: true
                                                 elide: Text.ElideRight
-                                                color: root.activeTagCategory === modelData.id ? (root.isDarkTheme ? "#ffffff" : root.textPrimary) : textSecondary
+                                                color: root.activeTagCategory === modelData.id ? (root.isDarkTheme ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary) : textSecondary
                                                 font.family: fontMain
                                                 font.pixelSize: 12
                                                 font.weight: root.activeTagCategory === modelData.id ? Font.DemiBold : Font.Normal
@@ -2974,7 +3081,7 @@ ApplicationWindow {
                                     Text {
                                         id: limitLabel
                                         anchors.centerIn: parent
-                                        text: "Top " + root.maxSidebarTags
+                                        text: root.tr("sidebar.limit_label", "Top %1").arg(root.maxSidebarTags)
                                         color: root.lobeAccent
                                         font.family: fontMono
                                         font.pixelSize: 10
@@ -2985,7 +3092,7 @@ ApplicationWindow {
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         ToolTip.visible: containsMouse
-                                        ToolTip.text: "Cycle tag limit: 40 / 80 / 120 / 200"
+                                        ToolTip.text: root.tr("sidebar.limit_hint", "Change tag limit: 40 / 80 / 120 / 200")
                                         onClicked: {
                                             if (root.maxSidebarTags <= 40) root.maxSidebarTags = 80
                                             else if (root.maxSidebarTags <= 80) root.maxSidebarTags = 120
@@ -3073,10 +3180,10 @@ ApplicationWindow {
                                     radius: 5
                                     clip: true
 
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                     }
 
                                     TextInput {
@@ -3139,10 +3246,10 @@ ApplicationWindow {
                                 border.color: root.borderSubtle
                                 clip: true
 
-                                Rectangle {
-                                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                    anchors.leftMargin: 4; anchors.rightMargin: 4
-                                    color: root.borderSpecular
+                                SurfaceSheen {
+                                    anchors.fill: parent
+                                    cornerRadius: parent.radius || 0
+                                    highlightColor: root.borderSpecular
                                 }
 
                                 RowLayout {
@@ -3251,10 +3358,10 @@ ApplicationWindow {
                                         (folderMouse.containsMouse ? (root.isDarkTheme ? "#262634" : "#e4e4ed") : "transparent")
                                     border.color: (gallery.selectedSubfolder === modelData.name) ? root.lobeAccent : "transparent"
 
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: (gallery.selectedSubfolder === modelData.name) ? root.borderSpecular : "transparent"
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: (gallery.selectedSubfolder === modelData.name) ? root.borderSpecular : "transparent"
                                     }
 
                                     RowLayout {
@@ -3266,13 +3373,13 @@ ApplicationWindow {
                                         LobeIcon {
                                             name: modelData.name === "All" ? "folder-open" : "folder"
                                             size: 14
-                                            color: (gallery.selectedSubfolder === modelData.name) ? "#ffffff" : root.textSecondary
+                                            color: (gallery.selectedSubfolder === modelData.name) ? root.getAccentContrastColor(root.lobeAccent) : root.textSecondary
                                         }
 
                                         Text {
                                             Layout.fillWidth: true
                                             text: modelData.name === "All" ? root.tr("sidebar.all_folders", "All") : modelData.displayName
-                                            color: (gallery.selectedSubfolder === modelData.name) ? "#ffffff" : root.textPrimary
+                                            color: (gallery.selectedSubfolder === modelData.name) ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                             font.family: root.fontMain
                                             font.pixelSize: 12
                                             font.weight: (gallery.selectedSubfolder === modelData.name) ? Font.DemiBold : Font.Normal
@@ -3291,7 +3398,7 @@ ApplicationWindow {
                                                 id: folderCountText
                                                 anchors.centerIn: parent
                                                 text: modelData.count
-                                                color: (gallery.selectedSubfolder === modelData.name) ? "#ffffff" : root.textMuted
+                                                color: (gallery.selectedSubfolder === modelData.name) ? root.getAccentContrastColor(root.lobeAccent) : root.textMuted
                                                 font.family: root.fontMono
                                                 font.pixelSize: 10
                                             }
@@ -3448,10 +3555,10 @@ ApplicationWindow {
                                         border.width: 1
 
                                         // Specular highlight line
-                                        Rectangle {
-                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                            anchors.leftMargin: 8; anchors.rightMargin: 8
-                                            color: root.borderSpecular
+                                        SurfaceSheen {
+                                            anchors.fill: parent
+                                            cornerRadius: parent.radius || 0
+                                            highlightColor: root.borderSpecular
                                         }
 
                                         RowLayout {
@@ -3478,7 +3585,7 @@ ApplicationWindow {
 
                                             // Group Title
                                             Text {
-                                                text: groupInfo.title || "Group"
+                                                text: gallery.groupMode === 1 && groupInfo.title === "Root" ? root.tr("backend.message_22", "Root folder") : (groupInfo.title || root.tr("toolbar.group", "Group"))
                                                 color: root.textPrimary
                                                 font.family: root.fontMain
                                                 font.pixelSize: 12
@@ -3622,10 +3729,10 @@ ApplicationWindow {
                         border.width: 1
 
                         // Specular Highlight Rim
-                        Rectangle {
-                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                            anchors.leftMargin: 4; anchors.rightMargin: 4
-                            color: root.borderSpecular
+                        SurfaceSheen {
+                            anchors.fill: parent
+                            cornerRadius: parent.radius || 0
+                            highlightColor: root.borderSpecular
                             z: 5
                         }
 
@@ -3904,33 +4011,18 @@ ApplicationWindow {
                     Behavior on opacity {
                         NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
                     }
-                    color: root.enableGlass ? 
-                        (root.isDarkTheme ? 
-                            Qt.rgba(root.darkToneR + 0.03, root.darkToneG + 0.03, root.darkToneB + 0.05, Math.min(0.60, root.glassOpacity * 0.58)) : 
-                            Qt.rgba(root.lightToneR, root.lightToneG, root.lightToneB, Math.min(0.66, root.glassOpacity * 0.62))) : 
-                        bgSurface
-                    border.color: root.enableGlass ? 
-                        (root.isDarkTheme ? Qt.rgba(1.0, 1.0, 1.0, 0.12) : Qt.rgba(0.0, 0.0, 0.0, 0.09)) : 
-                        root.borderSubtle
-                    border.width: 1
-
-                    // Subtle Glass Ambient Sheen (Upper soft gradient reflection)
-                    Rectangle {
-                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-                        height: 90
-                        radius: parent.radius
-                        clip: true
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.35) }
-                            GradientStop { position: 1.0; color: "transparent" }
-                        }
-                        visible: root.enableGlass
-                    }
-
-                    Rectangle {
-                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                        anchors.leftMargin: 10; anchors.rightMargin: 10
-                        color: root.borderSpecular
+                    color: root.enableGlass ? "transparent" : root.bgSurface
+                    border.color: root.enableGlass ? "transparent" : root.borderSubtle
+                    border.width: root.enableGlass ? 0 : 1
+                    FrostedPanel {
+                        objectName: "inspectorGlass"
+                        anchors.fill: parent; radius: parent.radius
+                        sourceScene: backdropScene; visible: root.enableGlass; glassEnabled: root.enableGlass
+                        dark: root.isDarkTheme; specular: root.enableSpecular
+                        tintColor: root.bgApp; accent: root.lobeAccent
+                        amount: root.glassBlurAmount; opacityLevel: root.glassOpacity
+                        tintStrength: root.glassTintStrength; chroma: root.glassChroma
+                        captureLive: root.active && root.visible && !root.settingsModalOpen
                     }
 
                     Flickable {
@@ -3947,158 +4039,9 @@ ApplicationWindow {
 
                             Item { height: 2 }
 
-                            // Empty State View (When nothing is selected)
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 16
+                            // The inspector explains its purpose until an image is selected.
+                            InspectorWelcome {
                                 visible: gallery.selectedCount <= 1 && gallery.selectedImage.filePath === undefined
-
-                                Item { height: 16 }
-
-                                // Centered Glass Info Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 200
-                                    color: bgCard
-                                    radius: 10
-                                    border.color: borderSubtle
-                                    clip: true
-
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 8; anchors.rightMargin: 8
-                                        color: root.borderSpecular
-                                    }
-
-                                    ColumnLayout {
-                                        anchors.centerIn: parent
-                                        spacing: 10
-                                        width: parent.width - 32
-
-                                        Rectangle {
-                                            width: 44
-                                            height: 44
-                                            radius: 22
-                                            color: root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04)
-                                            border.color: root.borderSubtle
-                                            Layout.alignment: Qt.AlignHCenter
-
-                                            LobeIcon {
-                                                anchors.centerIn: parent
-                                                name: "image"
-                                                size: 20
-                                                color: root.lobeAccent
-                                            }
-                                        }
-
-                                        Text {
-                                            text: root.tr("inspector.no_selection", "No Image Selected")
-                                            color: root.textPrimary
-                                            font.family: root.fontMain
-                                            font.pixelSize: 13
-                                            font.weight: Font.DemiBold
-                                            Layout.alignment: Qt.AlignHCenter
-                                        }
-
-                                        Text {
-                                            text: root.tr("inspector.no_selection_hint", "Click an image to inspect Stable Diffusion parameters, prompt, and tags.")
-                                            color: root.textMuted
-                                            font.family: root.fontMain
-                                            font.pixelSize: 12
-                                            horizontalAlignment: Text.AlignHCenter
-                                            wrapMode: Text.WordWrap
-                                            Layout.fillWidth: true
-                                        }
-                                    }
-                                }
-
-                                // Quick Library Stats
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Text {
-                                        text: root.tr("inspector.library_stats", "LIBRARY STATS").toUpperCase()
-                                        color: textSecondary
-                                        font.family: fontMain
-                                        font.pixelSize: 10
-                                        font.weight: Font.DemiBold
-                                        font.letterSpacing: 1.2
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 96
-                                        color: bgCard
-                                        radius: 8
-                                        border.color: borderSubtle
-                                        clip: true
-
-                                        Rectangle {
-                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                            anchors.leftMargin: 6; anchors.rightMargin: 6
-                                            color: root.borderSpecular
-                                        }
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 12
-                                            spacing: 6
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                Text { text: root.tr("inspector.total_images", "Total Images:"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12 }
-                                                Item { Layout.fillWidth: true }
-                                                Text { text: "" + gallery.totalCount; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 12; font.weight: Font.DemiBold }
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                Text { text: root.tr("inspector.matching_view", "Matching View:"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12 }
-                                                Item { Layout.fillWidth: true }
-                                                Text { text: "" + gallery.filteredCount; color: root.lobeAccent; font.family: root.fontMono; font.pixelSize: 12; font.weight: Font.DemiBold }
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                Text { text: root.tr("inspector.active_subfolder", "Active Subfolder:"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12 }
-                                                Item { Layout.fillWidth: true }
-                                                Text { text: gallery.selectedSubfolder; color: root.textPrimary; font.family: root.fontMain; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 140 }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Quick Shortcuts Reference
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 6
-
-                                    Text {
-                                        text: root.tr("settings.about_shortcuts", "SHORTCUTS").toUpperCase()
-                                        color: textSecondary
-                                        font.family: fontMain
-                                        font.pixelSize: 10
-                                        font.weight: Font.DemiBold
-                                        font.letterSpacing: 1.2
-                                    }
-
-                                    RowLayout {
-                                        spacing: 8
-                                        Rectangle { width: 44; height: 20; radius: 4; color: root.isDarkTheme ? "#202028" : "#e4e4ea"; border.color: root.borderSubtle; Text { anchors.centerIn: parent; text: "Space"; font.family: root.fontMono; font.pixelSize: 9; color: root.textPrimary } }
-                                        Text { text: root.tr("context.open_fullscreen", "Fullscreen"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12 }
-                                    }
-                                    RowLayout {
-                                        spacing: 8
-                                        Rectangle { width: 44; height: 20; radius: 4; color: root.isDarkTheme ? "#202028" : "#e4e4ea"; border.color: root.borderSubtle; Text { anchors.centerIn: parent; text: "I"; font.family: root.fontMono; font.pixelSize: 9; color: root.textPrimary } }
-                                        Text { text: root.tr("toolbar.toggle_inspector", "Toggle Inspector"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12 }
-                                    }
-                                    RowLayout {
-                                        spacing: 8
-                                        Rectangle { width: 44; height: 20; radius: 4; color: root.isDarkTheme ? "#202028" : "#e4e4ea"; border.color: root.borderSubtle; Text { anchors.centerIn: parent; text: "Ctrl+A"; font.family: root.fontMono; font.pixelSize: 9; color: root.textPrimary } }
-                                        Text { text: root.tr("common.select_all", "Select All"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12 }
-                                    }
-                                }
                             }
 
                             // Multi-Selection Summary View
@@ -4134,10 +4077,10 @@ ApplicationWindow {
                                     border.color: borderSubtle
                                     clip: true
 
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                     }
 
                                     ColumnLayout {
@@ -4207,9 +4150,9 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     Text {
                                         Layout.fillWidth: true
-                                        text: root.tr("inspector.title", "Inspector").toUpperCase()
-                                        color: root.textSecondary; font.family: root.fontMain
-                                        font.pixelSize: 12; font.weight: Font.DemiBold; font.letterSpacing: 1
+                                        text: root.tr("inspector.title", "Inspector")
+                                        color: root.textPrimary; font.family: root.fontMain
+                                        font.pixelSize: 16; font.weight: Font.DemiBold
                                     }
                                     LobeActionIcon {
                                         icon: "maximize"; size: "small"
@@ -4278,10 +4221,10 @@ ApplicationWindow {
                                     border.color: borderSubtle
                                     border.width: 1
 
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                     }
 
                                     // Checkerboard pattern under transparent images
@@ -4317,10 +4260,10 @@ ApplicationWindow {
                                         border.width: 1
                                         visible: !!gallery.selectedImage.dimensions
 
-                                        Rectangle {
-                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                            anchors.leftMargin: 2; anchors.rightMargin: 2
-                                            color: root.borderSpecular
+                                        SurfaceSheen {
+                                            anchors.fill: parent
+                                            cornerRadius: parent.radius || 0
+                                            highlightColor: root.borderSpecular
                                         }
 
                                         Text {
@@ -4347,10 +4290,10 @@ ApplicationWindow {
                                         border.color: root.borderSubtle
                                         border.width: 1
 
-                                        Rectangle {
-                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                            anchors.leftMargin: 2; anchors.rightMargin: 2
-                                            color: root.borderSpecular
+                                        SurfaceSheen {
+                                            anchors.fill: parent
+                                            cornerRadius: parent.radius || 0
+                                            highlightColor: root.borderSpecular
                                         }
 
                                         LobeIcon {
@@ -4434,14 +4377,14 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         Text { text: root.tr("inspector.folder", "Folder"); color: textMuted; font.family: fontMain; font.pixelSize: 12 }
                                         Item { Layout.fillWidth: true }
-                                        Text { text: gallery.selectedImage.relativeDir || "Root"; color: textSecondary; font.family: fontMain; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight; elide: Text.ElideMiddle }
+                                        Text { text: gallery.selectedImage.isLibraryRoot ? root.tr("backend.message_22", "Root folder") : (gallery.selectedImage.relativeDir || root.tr("backend.message_22", "Root folder")); color: textSecondary; font.family: fontMain; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight; elide: Text.ElideMiddle }
                                     }
 
                                     RowLayout {
                                         Layout.fillWidth: true
                                         Text { text: root.tr("inspector.model", "Model"); color: textMuted; font.family: fontMain; font.pixelSize: 12 }
                                         Item { Layout.fillWidth: true }
-                                        Text { text: gallery.selectedImage.modelName || root.tr("common.unknown", "Unknown"); color: textSecondary; font.family: fontMain; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight; elide: Text.ElideMiddle }
+                                        Text { text: (gallery.selectedImage.modelName && gallery.selectedImage.modelName !== "Unknown") ? gallery.selectedImage.modelName : root.tr("common.unknown", "Unknown"); color: textSecondary; font.family: fontMain; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight; elide: Text.ElideMiddle }
                                     }
 
                                     RowLayout {
@@ -4464,15 +4407,18 @@ ApplicationWindow {
                                 // Prompt Section with Copy Button
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 4
+                                    spacing: 8
 
                                     RowLayout {
                                         Layout.fillWidth: true
+                                        LobeIcon { name: "sparkles"; size: 16; color: root.textSecondary }
                                         Text {
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
                                             text: root.tr("inspector.prompt", "Prompt")
                                             color: textSecondary
                                             font.family: fontMain
-                                            font.pixelSize: 12
+                                            font.pixelSize: 13
                                             font.weight: Font.Medium
                                         }
                                         Item { Layout.fillWidth: true }
@@ -4484,21 +4430,15 @@ ApplicationWindow {
                                             font.pixelSize: 10
                                             visible: false
                                         }
-                                        Text {
-                                            text: root.tr("common.copy", "Copy")
-                                            color: root.lobeAccent
-                                            font.family: fontMain
-                                            font.pixelSize: 12
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    promptBox.selectAll()
-                                                    promptBox.copy()
-                                                    promptBox.deselect()
-                                                    promptCopiedFeedback.visible = true
-                                                    promptTimer.restart()
-                                                }
+                                        LobeActionIcon {
+                                            objectName: "inspectorCopyPrompt"
+                                            icon: promptCopiedFeedback.visible ? "check" : "copy"
+                                            size: "small"; type: "default"
+                                            title: root.tr("context.copy_prompt", "Copy prompt")
+                                            enabled: !!gallery.selectedImage.prompt
+                                            onClicked: {
+                                                clipboardHelper.copyText(gallery.selectedImage.prompt)
+                                                promptCopiedFeedback.visible=true;promptTimer.restart()
                                             }
                                         }
                                         Timer {
@@ -4513,13 +4453,13 @@ ApplicationWindow {
                                         Layout.preferredHeight: Math.max(64, Math.min(140, promptBox.contentHeight + 16))
                                         color: bgInput
                                         border.color: borderSubtle
-                                        radius: 6
+                                        radius: UI.design.metrics.radius
                                         clip: true
 
-                                        Rectangle {
-                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                            anchors.leftMargin: 4; anchors.rightMargin: 4
-                                            color: root.borderSpecular
+                                        SurfaceSheen {
+                                            anchors.fill: parent
+                                            cornerRadius: parent.radius || 0
+                                            highlightColor: root.borderSpecular
                                         }
 
                                         Flickable {
@@ -4533,7 +4473,7 @@ ApplicationWindow {
                                                 text: gallery.selectedImage.prompt || root.tr("common.no_prompt", "(No generation prompt)")
                                                 color: gallery.selectedImage.prompt ? textPrimary : textMuted
                                                 font.family: fontMain
-                                                font.pixelSize: 12
+                                                font.pixelSize: 13
                                                 wrapMode: Text.Wrap
                                                 readOnly: true
                                                 background: null
@@ -4546,15 +4486,29 @@ ApplicationWindow {
                                 // Negative Prompt
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 4
+                                    spacing: 8
                                     visible: !!gallery.selectedImage.negativePrompt
 
-                                    Text {
-                                        text: root.tr("inspector.negative_prompt", "Negative Prompt")
-                                        color: textSecondary
-                                        font.family: fontMain
-                                        font.pixelSize: 12
-                                        font.weight: Font.Medium
+                                    RowLayout {
+                                        Layout.fillWidth: true; spacing: 8
+                                        LobeIcon { name: "circle-minus"; size: 16; color: root.textSecondary }
+                                        Text {
+                                            Layout.fillWidth: true; elide: Text.ElideRight
+                                            text: root.tr("inspector.negative_prompt", "Negative Prompt")
+                                            color: textSecondary; font.family: fontMain
+                                            font.pixelSize: 13; font.weight: Font.Medium
+                                        }
+                                        LobeActionIcon {
+                                            id: negativeCopy; objectName: "inspectorCopyNegative"
+                                            property bool copied: false
+                                            icon: copied ? "check" : "copy"; size: "small"; type: "default"
+                                            title: root.tr("context.copy_neg_prompt", "Copy negative prompt")
+                                            onClicked: {
+                                                clipboardHelper.copyText(gallery.selectedImage.negativePrompt || "")
+                                                copied=true;negativeCopyTimer.restart()
+                                            }
+                                        }
+                                        Timer { id: negativeCopyTimer; interval: 1500; onTriggered: negativeCopy.copied=false }
                                     }
 
                                     Rectangle {
@@ -4562,13 +4516,13 @@ ApplicationWindow {
                                         Layout.preferredHeight: Math.max(50, Math.min(100, negBox.contentHeight + 16))
                                         color: bgInput
                                         border.color: borderSubtle
-                                        radius: 6
+                                        radius: UI.design.metrics.radius
                                         clip: true
 
-                                        Rectangle {
-                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                            anchors.leftMargin: 4; anchors.rightMargin: 4
-                                            color: root.borderSpecular
+                                        SurfaceSheen {
+                                            anchors.fill: parent
+                                            cornerRadius: parent.radius || 0
+                                            highlightColor: root.borderSpecular
                                         }
 
                                         Flickable {
@@ -4582,7 +4536,7 @@ ApplicationWindow {
                                                 text: gallery.selectedImage.negativePrompt || ""
                                                 color: textSecondary
                                                 font.family: fontMain
-                                                font.pixelSize: 12
+                                                font.pixelSize: 13
                                                 wrapMode: Text.Wrap
                                                 readOnly: true
                                                 background: null
@@ -4633,136 +4587,73 @@ ApplicationWindow {
                 }
             }
 
-            // ---------------- 2.4 STATUS BAR (Floating Translucent Glass Capsule) ----------------
-            Rectangle {
+        }
+    }
+
+    // Library details remain available without a permanent footer.
+    Popup {
+        id: libraryStatusPopup
+        objectName: "libraryStatusPopup"
+        parent: root.contentItem
+        popupType: Popup.Item
+        focus: true
+        z: 500
+        width: 320; padding: 16
+        onAboutToShow: {
+            var anchor = libraryStatusButton.mapToItem(root.contentItem, 0, libraryStatusButton.height)
+            x = Math.max(8, Math.min(root.width - width - 8, anchor.x))
+            y = anchor.y + 8
+        }
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Rectangle {
+            radius: 12
+            color: root.isDarkTheme ?
+                Qt.rgba(root.darkToneR + 0.04, root.darkToneG + 0.04, root.darkToneB + 0.06, 0.97) :
+                Qt.rgba(root.lightToneR, root.lightToneG, root.lightToneB, 0.97)
+            border.color: root.borderSubtle
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
+            }
+        }
+        contentItem: ColumnLayout {
+            spacing: 12
+            Text {
+                text: root.tr("ux.library_status", "Library status")
+                color: root.textPrimary; font.family: root.fontMain; font.pixelSize: 14; font.weight: Font.DemiBold
+            }
+            Text {
+                objectName: "libraryStatusDetails"
                 Layout.fillWidth: true
-                Layout.preferredHeight: 32
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                Layout.bottomMargin: 8
-                Layout.topMargin: 2
-                radius: 10
-                clip: true
-                color: root.enableGlass ? 
-                    (root.isDarkTheme ? 
-                        Qt.rgba(root.darkToneR + 0.03, root.darkToneG + 0.03, root.darkToneB + 0.05, Math.min(0.58, root.glassOpacity * 0.56)) : 
-                        Qt.rgba(root.lightToneR, root.lightToneG, root.lightToneB, Math.min(0.64, root.glassOpacity * 0.60))) : 
-                    bgSurface
-                border.color: root.enableGlass ? 
-                    (root.isDarkTheme ? Qt.rgba(1.0, 1.0, 1.0, 0.12) : Qt.rgba(0.0, 0.0, 0.0, 0.09)) : 
-                    root.borderSubtle
-                border.width: 1
-
-                // Specular Glass Top Highlight
-                Rectangle {
-                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                    anchors.leftMargin: 8; anchors.rightMargin: 8
-                    color: root.borderSpecular
-                }
-
-                // Bottom Progress Bar Track & Animated Fill
-                Rectangle {
-                    id: bottomProgressBarTrack
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 2.5
-                    color: (gallery.isLoading || gallery.isFiltering) ? (root.isDarkTheme ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
-                    visible: gallery.isLoading || gallery.isFiltering
-
-                    Rectangle {
-                        id: bottomProgressBarFill
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: gallery.isFiltering && !gallery.isLoading ? parent.width : Math.max(0, Math.min(parent.width, parent.width * gallery.scanProgress))
-                        color: root.lobeAccent
-
-                        Behavior on width {
-                            NumberAnimation { duration: 160; easing.type: Easing.OutQuad }
-                        }
-
-                        // Shimmer highlight effect during active scanning
-                        Rectangle {
-                            id: shimmerRect
-                            width: Math.max(1, parent.width)
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            visible: (gallery.isLoading || gallery.isFiltering)
-                            gradient: Gradient {
-                                orientation: Gradient.Horizontal
-                                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.0) }
-                                GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.5) }
-                                GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.0) }
-                            }
-                            SequentialAnimation on x {
-                                running: (gallery.isLoading || gallery.isFiltering)
-                                loops: Animation.Infinite
-                                NumberAnimation { from: -Math.max(1, shimmerRect.width); to: Math.max(1, shimmerRect.width); duration: 1100; easing.type: Easing.InOutQuad }
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 14
-                    anchors.rightMargin: 14
-                    spacing: 12
-
-                    // Status Indicator Dot + Text
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Rectangle {
-                            width: 7
-                            height: 7
-                            radius: 3.5
-                            color: (gallery.isLoading || gallery.isFiltering) ? root.lobeAccent : (gallery.totalCount > 0 ? "#10b981" : root.textMuted)
-
-                            SequentialAnimation on opacity {
-                                running: (gallery.isLoading || gallery.isFiltering)
-                                loops: Animation.Infinite
-                                NumberAnimation { from: 1.0; to: 0.3; duration: 650; easing.type: Easing.InOutSine }
-                                NumberAnimation { from: 0.3; to: 1.0; duration: 650; easing.type: Easing.InOutSine }
-                            }
-                        }
-
-                        Text {
-                            text: {
-                                if (gallery.isFiltering && !gallery.isLoading) return root.tr("ux.filtering", "Updating results…")
-                                if (gallery.isLoading) {
-                                    var pct = Math.round(gallery.scanProgress * 100)
-                                    return (gallery.scanStatus ? gallery.scanStatus : root.tr("status.scanning", "Scanning...")) + (pct > 0 ? (" (" + pct + "%)") : "")
-                                }
-                                if (gallery.scanStatus && gallery.scanStatus.indexOf("Library indexed:") === 0) {
-                                    return root.tr("status.library_indexed", "Library indexed:") + " " + gallery.totalCount + " " + root.tr("gallery.items", "items")
-                                }
-                                return gallery.scanStatus ? gallery.scanStatus : (gallery.totalCount > 0 ? root.tr("status.ready", "Ready") : root.tr("status.idle", "Idle"))
-                            }
-                            color: (gallery.isLoading || gallery.isFiltering) ? root.lobeAccent : textSecondary
-                            font.family: fontMain
-                            font.pixelSize: 12
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                        }
-                    }
-
-                    Text {
-                        text: gallery.filteredCount + " " + root.tr("status.matching", "matching") + " / " + gallery.totalCount + " " + root.tr("status.total", "total")
-                        color: textPrimary
-                        font.family: fontMono
-                        font.pixelSize: 12
-                    }
-
-                    Text {
-                        text: root.columnCount + " " + root.tr("status.columns", "columns") + " (" + root.itemSpacing + "px " + root.tr("status.gap", "gap") + ")"
-                        color: textMuted
-                        font.family: fontMono
-                        font.pixelSize: 10
-                    }
-                }
+                text: root.libraryStatusText
+                color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 12; wrapMode: Text.Wrap
+            }
+            Text {
+                Layout.fillWidth: true
+                text: gallery.filteredCount + " " + root.tr("status.matching", "matching") + " / " + gallery.totalCount + " " + root.tr("status.total", "total")
+                color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 12
+            }
+            Text {
+                Layout.fillWidth: true
+                visible: gallery.currentFolder !== ""
+                text: gallery.currentFolder
+                color: root.textMuted; font.family: root.fontMain; font.pixelSize: 12; wrapMode: Text.WrapAnywhere
+            }
+            LobeButton {
+                Layout.fillWidth: true
+                visible: gallery.isLoading
+                text: root.tr("ux.stop_scan", "Stop scanning"); iconName: "x"
+                onClicked: gallery.cancelScan()
+            }
+            LobeButton {
+                objectName: "libraryGridSettings"
+                Layout.fillWidth: true
+                text: root.columnCount + " " + root.tr("status.columns", "columns") + " · " + root.itemSpacing + " px"
+                iconName: "settings"
+                ToolTip.visible: hovered
+                ToolTip.text: root.tr("settings.tab_grid", "Grid & Layout")
+                onClicked: { libraryStatusPopup.close(); root.activeSettingsTab = 1; root.settingsModalOpen = true }
             }
         }
     }
@@ -4785,12 +4676,12 @@ ApplicationWindow {
         // Backdrop Hardware Blur on Underlying Gallery
         MultiEffect {
             anchors.fill: parent
-            source: mainContent
+            source: root.settingsModalOpen ? mainContent : null
             blurEnabled: root.enableGlass
             blurMax: 40
-            blur: 0.90
+            blur: root.glassBlurAmount
             saturation: root.isDarkTheme ? -0.10 : 0.08
-            visible: root.enableGlass
+            visible: root.enableGlass && root.settingsModalOpen && GraphicsInfo.api !== GraphicsInfo.Software
         }
 
         // Frosted Dimmer Scrim
@@ -4819,10 +4710,10 @@ ApplicationWindow {
             border.width: 1
 
             // Specular Top Border with matching radius
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 12; anchors.rightMargin: 12
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
 
             // Block clicks from passing to scrim
@@ -4854,6 +4745,8 @@ ApplicationWindow {
                                 font.weight: Font.DemiBold
                             }
                             Text {
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
                                 text: root.tr("settings.header_desc", "Configure galIMV appearance, colors, glassmorphism, and layout")
                                 color: root.textMuted
                                 font.family: root.fontMain
@@ -4912,10 +4805,10 @@ ApplicationWindow {
                                     clip: true
                                     color: root.activeSettingsTab === index ? root.lobeAccent : (tabMouse.containsMouse ? (root.isDarkTheme ? "#24242e" : "#ebebef") : "transparent")
 
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                        anchors.leftMargin: 4; anchors.rightMargin: 4
-                                        color: root.borderSpecular
+                                    SurfaceSheen {
+                                        anchors.fill: parent
+                                        cornerRadius: parent.radius || 0
+                                        highlightColor: root.borderSpecular
                                         visible: root.activeSettingsTab === index
                                     }
 
@@ -4924,7 +4817,8 @@ ApplicationWindow {
                                         anchors.leftMargin: 12
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData
-                                        color: root.activeSettingsTab === index ? "#ffffff" : root.textPrimary
+                                        objectName: root.activeSettingsTab === index ? "activeSettingsNavigationLabel" : ""
+                                        color: root.activeSettingsTab === index ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                         font.family: root.fontMain
                                         font.pixelSize: 12
                                         font.weight: root.activeSettingsTab === index ? Font.DemiBold : Font.Normal
@@ -5004,11 +4898,15 @@ ApplicationWindow {
                                                 clip: true
                                                 color: root.isDarkTheme ? root.lobeAccent : root.bgCard
                                                 border.color: root.isDarkTheme ? root.lobeAccent : root.borderSubtle
-                                                Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 4; anchors.rightMargin: 4; color: root.borderSpecular }
+                                                SurfaceSheen {
+                                                    anchors.fill: parent
+                                                    cornerRadius: parent.radius || 0
+                                                    highlightColor: root.borderSpecular
+                                                }
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: root.tr("settings.dark", "Dark Theme")
-                                                    color: root.isDarkTheme ? "#ffffff" : root.textPrimary
+                                                    color: root.isDarkTheme ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                                     font.family: fontMain
                                                     font.pixelSize: 12
                                                     font.weight: root.isDarkTheme ? Font.DemiBold : Font.Normal
@@ -5025,11 +4923,15 @@ ApplicationWindow {
                                                 clip: true
                                                 color: !root.isDarkTheme ? root.lobeAccent : root.bgCard
                                                 border.color: !root.isDarkTheme ? root.lobeAccent : root.borderSubtle
-                                                Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 4; anchors.rightMargin: 4; color: root.borderSpecular }
+                                                SurfaceSheen {
+                                                    anchors.fill: parent
+                                                    cornerRadius: parent.radius || 0
+                                                    highlightColor: root.borderSpecular
+                                                }
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: root.tr("settings.light", "Light Theme")
-                                                    color: !root.isDarkTheme ? "#ffffff" : root.textPrimary
+                                                    color: !root.isDarkTheme ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                                     font.family: fontMain
                                                     font.pixelSize: 12
                                                     font.weight: !root.isDarkTheme ? Font.DemiBold : Font.Normal
@@ -5056,34 +4958,40 @@ ApplicationWindow {
                                             font.weight: Font.DemiBold
                                         }
 
-                                        Flow {
-                                            Layout.fillWidth: true
-                                            spacing: 8
-
-                                            Repeater {
-                                                model: root.lobeColors
-                                                delegate: Rectangle {
-                                                    width: 32; height: 32; radius: 16
-                                                    color: modelData.hex
-                                                    border.color: root.lobeAccent === modelData.hex ? (root.isDarkTheme ? "#ffffff" : "#18181b") : "transparent"
-                                                    border.width: 2
-
-                                                    // Inner focus indicator dot (no checkmark)
-                                                    Rectangle {
-                                                        anchors.centerIn: parent
-                                                        width: 10
-                                                        height: 10
-                                                        radius: 5
-                                                        color: "#ffffff"
-                                                        visible: root.lobeAccent === modelData.hex
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            root.lobeAccent = modelData.hex
-                                                            root.lobeAccentName = modelData.name
+                                        Repeater {
+                                            model: [
+                                                { title: "Lobe — 12", colors: root.lobeColors }
+                                            ]
+                                            delegate: ColumnLayout {
+                                                id: accentGroup
+                                                required property var modelData
+                                                Layout.fillWidth: true; spacing: 8
+                                                Text { text: accentGroup.modelData.title; color: root.textSecondary; font.pixelSize: 12 }
+                                                Flow {
+                                                    Layout.fillWidth: true; spacing: 8
+                                                    Repeater {
+                                                        model: accentGroup.modelData.colors
+                                                        delegate: Rectangle {
+                                                            id: swatch
+                                                            required property var modelData
+                                                            width: 36; height: 36; radius: 10
+                                                            color: root.accentColorFor(modelData)
+                                                            border.width: activeFocus || root.lobeAccentName===modelData.name ? 2 : 1
+                                                            border.color: activeFocus || root.lobeAccentName===modelData.name ? root.textPrimary : root.borderSubtle
+                                                            activeFocusOnTab: true
+                                                            Accessible.role: Accessible.Button
+                                                            Accessible.name: modelData.name
+                                                            Accessible.onPressAction: root.chooseAccent(modelData.name)
+                                                            Keys.onSpacePressed: root.chooseAccent(modelData.name)
+                                                            Keys.onReturnPressed: root.chooseAccent(modelData.name)
+                                                            Rectangle {
+                                                                anchors.centerIn: parent; width: 8; height: 8; radius: 4
+                                                                color: root.getAccentContrastColor(parent.color)
+                                                                visible: root.lobeAccentName===swatch.modelData.name
+                                                            }
+                                                            MouseArea { id: swatchMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.chooseAccent(swatch.modelData.name) }
+                                                            ToolTip.visible: swatchMouse.containsMouse || activeFocus
+                                                            ToolTip.text: modelData.name; ToolTip.delay: 400
                                                         }
                                                     }
                                                 }
@@ -5100,269 +5008,92 @@ ApplicationWindow {
 
                                     Rectangle { Layout.fillWidth: true; height: 1; color: root.borderSubtle }
 
-                                    // BACKGROUND DARKNESS & TONE SETTINGS
                                     ColumnLayout {
+                                        Layout.fillWidth: true
                                         spacing: 10
                                         Text {
-                                            text: root.tr("settings.bg_tone_title", "Background Tone & Grayness")
-                                            color: root.textPrimary
-                                            font.family: root.fontMain
-                                            font.pixelSize: 12
-                                            font.weight: Font.DemiBold
+                                            text: root.tr("settings.background_palette", "Background undertone")
+                                            color: root.textPrimary; font.family: root.fontMain; font.pixelSize: 12; font.weight: Font.DemiBold
                                         }
-
-                                        // Presets Row (Adaptive to Dark / Light Theme)
-                                        RowLayout {
-                                            spacing: 8
-                                            Text {
-                                                text: root.tr("settings.presets", "Presets:")
-                                                color: root.textMuted
-                                                font.family: root.fontMain
-                                                font.pixelSize: 11
-                                            }
-
-                                            // Dark Theme Presets
-                                            RowLayout {
-                                                visible: root.isDarkTheme
-                                                spacing: 8
-
-                                                // Charcoal
-                                                Rectangle {
-                                                    height: 26; width: Math.max(80, charcoalText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.bgTonePreset === 0 && Math.abs(root.bgDarkness - 0.07) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: charcoalText; anchors.centerIn: parent; text: root.tr("settings.tone_charcoal", "Charcoal"); color: (root.bgTonePreset === 0 && Math.abs(root.bgDarkness - 0.07) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.bgTonePreset = 0; root.bgDarkness = 0.07; } }
-                                                }
-
-                                                // Cool Slate
-                                                Rectangle {
-                                                    height: 26; width: Math.max(84, coolSlateDarkText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.bgTonePreset === 1 && Math.abs(root.bgDarkness - 0.12) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: coolSlateDarkText; anchors.centerIn: parent; text: root.tr("settings.tone_cool_slate", "Cool Slate"); color: (root.bgTonePreset === 1 && Math.abs(root.bgDarkness - 0.12) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.bgTonePreset = 1; root.bgDarkness = 0.12; } }
-                                                }
-
-                                                // Mauve
-                                                Rectangle {
-                                                    height: 26; width: Math.max(80, mauveDarkText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.bgTonePreset === 2 && Math.abs(root.bgDarkness - 0.10) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: mauveDarkText; anchors.centerIn: parent; text: root.tr("settings.tone_mauve", "Mauve"); color: (root.bgTonePreset === 2 && Math.abs(root.bgDarkness - 0.10) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.bgTonePreset = 2; root.bgDarkness = 0.10; } }
-                                                }
-
-                                                // Steel Gray
-                                                Rectangle {
-                                                    height: 26; width: Math.max(84, steelGrayDarkText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.bgTonePreset === 0 && Math.abs(root.bgDarkness - 0.22) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: steelGrayDarkText; anchors.centerIn: parent; text: root.tr("settings.tone_steel_gray", "Steel Gray"); color: (root.bgTonePreset === 0 && Math.abs(root.bgDarkness - 0.22) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.bgTonePreset = 0; root.bgDarkness = 0.22; } }
-                                                }
-                                            }
-
-                                            // Light Theme Presets
-                                            RowLayout {
-                                                visible: !root.isDarkTheme
-                                                spacing: 8
-
-                                                // Pure Snow
-                                                Rectangle {
-                                                    height: 26; width: Math.max(84, pureSnowText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.lightTonePreset === 3 && root.lightBrightness === 0.0) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: pureSnowText; anchors.centerIn: parent; text: root.tr("settings.tone_pure_snow", "Pure Snow"); color: (root.lightTonePreset === 3 && root.lightBrightness === 0.0) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.lightTonePreset = 3; root.lightBrightness = 0.0; } }
-                                                }
-
-                                                // Warm Paper
-                                                Rectangle {
-                                                    height: 26; width: Math.max(88, warmPaperText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.lightTonePreset === 2 && Math.abs(root.lightBrightness - 0.04) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: warmPaperText; anchors.centerIn: parent; text: root.tr("settings.tone_warm_paper", "Warm Paper"); color: (root.lightTonePreset === 2 && Math.abs(root.lightBrightness - 0.04) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.lightTonePreset = 2; root.lightBrightness = 0.04; } }
-                                                }
-
-                                                // Cool Alabaster
-                                                Rectangle {
-                                                    height: 26; width: Math.max(96, coolAlabasterText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.lightTonePreset === 1 && Math.abs(root.lightBrightness - 0.04) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: coolAlabasterText; anchors.centerIn: parent; text: root.tr("settings.tone_cool_alabaster", "Cool Alabaster"); color: (root.lightTonePreset === 1 && Math.abs(root.lightBrightness - 0.04) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.lightTonePreset = 1; root.lightBrightness = 0.04; } }
-                                                }
-
-                                                // Soft Studio
-                                                Rectangle {
-                                                    height: 26; width: Math.max(84, softStudioText.implicitWidth + 18); radius: 5
-                                                    clip: true
-                                                    color: (root.lightTonePreset === 0 && Math.abs(root.lightBrightness - 0.08) < 0.02) ? root.lobeAccent : root.bgCard
-                                                    border.color: root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
-                                                    Text { id: softStudioText; anchors.centerIn: parent; text: root.tr("settings.tone_soft_studio", "Soft Studio"); color: (root.lightTonePreset === 0 && Math.abs(root.lightBrightness - 0.08) < 0.02) ? "#ffffff" : root.textPrimary; font.pixelSize: 11; font.family: root.fontMain }
-                                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.lightTonePreset = 0; root.lightBrightness = 0.08; } }
-                                                }
-                                            }
-                                        }
-
-                                        // Tone / Darkness Slider (Adaptive for Dark / Light Theme)
-                                        ColumnLayout {
+                                        Flow {
                                             Layout.fillWidth: true
-                                            spacing: 4
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                Text {
-                                                    text: root.isDarkTheme ? root.tr("settings.bg_darkness_level", "Background Darkness Level") : root.tr("settings.bg_lightness_level", "Background Lightness / Softness")
-                                                    color: root.textPrimary
-                                                    font.family: root.fontMain
-                                                    font.pixelSize: 11
+                                            spacing: 8
+                                            Repeater {
+                                                model: root.backgroundTones
+                                                delegate: Rectangle {
+                                                    id: toneSwatch
+                                                    required property var modelData
+                                                    readonly property string toneTitle: root.toneTitle(modelData,root.isDarkTheme)
+                                                    width: 170; height: 38; radius: 8
+                                                    color: root.toneColorFor(modelData.id,root.isDarkTheme,root.isDarkTheme?.08:.04)
+                                                    border.width: activeFocus || root.backgroundToneName===modelData.id ? 2 : 1
+                                                    border.color: activeFocus || root.backgroundToneName===modelData.id ? root.textPrimary : root.borderSubtle
+                                                    activeFocusOnTab: true
+                                                    Accessible.role: Accessible.Button
+                                                    Accessible.name: toneTitle
+                                                    Accessible.onPressAction: root.backgroundToneName=modelData.id
+                                                    Keys.onSpacePressed: root.backgroundToneName=modelData.id
+                                                    Keys.onReturnPressed: root.backgroundToneName=modelData.id
+                                                    Text {
+                                                        anchors.left: parent.left; anchors.leftMargin: 12; anchors.right: parent.right; anchors.rightMargin: 34; anchors.verticalCenter: parent.verticalCenter
+                                                        elide: Text.ElideRight
+                                                        text: toneSwatch.toneTitle
+                                                        color: root.getAccentContrastColor(toneSwatch.color)
+                                                        font.family: root.fontMain; font.pixelSize: 12; font.weight: Font.Medium
+                                                    }
+                                                    Image {
+                                                        anchors.right: parent.right; anchors.rightMargin: 9; anchors.verticalCenter: parent.verticalCenter
+                                                        width: 16; height: 16
+                                                        visible: root.backgroundToneName===toneSwatch.modelData.id
+                                                        source: root.sharedIconSource("check",root.getAccentContrastColor(toneSwatch.color))
+                                                        sourceSize: Qt.size(16*root.dpr,16*root.dpr)
+                                                    }
+                                                    MouseArea {
+                                                        id: toneMouse; anchors.fill: parent; hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: root.backgroundToneName=toneSwatch.modelData.id
+                                                    }
+                                                    ToolTip.visible: toneMouse.containsMouse || activeFocus
+                                                    ToolTip.text: toneTitle; ToolTip.delay: 350
                                                 }
-                                                Item { Layout.fillWidth: true }
-                                                Text {
-                                                    text: root.isDarkTheme ? 
-                                                        (Math.round((1.0 - (root.bgDarkness / 0.38)) * 100) + "% " + root.tr("settings.darkness", "Darkness") + " (" + Math.round(root.bgDarkness * 100) + "% " + root.tr("settings.level", "Level") + ")") : 
-                                                        (Math.round((1.0 - (root.lightBrightness / 0.32)) * 100) + "% " + root.tr("settings.lightness", "Lightness") + " (" + Math.round(root.lightBrightness * 100) + "% " + root.tr("settings.shade", "Shade") + ")")
-                                                    color: root.textMuted
-                                                    font.family: root.fontMono
-                                                    font.pixelSize: 11
-                                                }
-                                            }
-
-                                            // Slider for Dark Theme
-                                            LobeSlider {
-                                                visible: root.isDarkTheme
-                                                from: 0.0
-                                                to: 0.38
-                                                stepSize: 0.01
-                                                value: root.bgDarkness
-                                                Layout.fillWidth: true
-                                                onValueChanged: root.bgDarkness = value
-                                            }
-
-                                            // Slider for Light Theme
-                                            LobeSlider {
-                                                visible: !root.isDarkTheme
-                                                from: 0.0
-                                                to: 0.32
-                                                stepSize: 0.01
-                                                value: root.lightBrightness
-                                                Layout.fillWidth: true
-                                                onValueChanged: root.lightBrightness = value
                                             }
                                         }
-
-                                        // Segmented Pill Buttons for Color Tint (Adaptive for Dark / Light Theme)
+                                        Text {
+                                            text: root.tr("settings.selected_undertone","Selected undertone:")+" "+root.toneTitle(root.toneDefinition(root.backgroundToneName)||root.backgroundTones[0],root.isDarkTheme)
+                                            color: root.textMuted; font.family: root.fontMain; font.pixelSize: 11
+                                        }
+                                        Text {
+                                            Layout.fillWidth: true; wrapMode: Text.WordWrap
+                                            text: root.tr("settings.paired_undertone","A coordinated material pair connects the dark and light themes.")
+                                            color: root.textMuted; font.family: root.fontMain; font.pixelSize: 11
+                                        }
                                         RowLayout {
-                                            spacing: 8
-                                            Text { text: root.tr("settings.color_tint", "Color Tint:"); color: root.textMuted; font.family: root.fontMain; font.pixelSize: 11 }
-
-                                            // Dark Theme Tints
-                                            RowLayout {
-                                                visible: root.isDarkTheme
-                                                spacing: 6
-                                                Repeater {
-                                                    model: [
-                                                        { id: 0, name: root.tr("settings.tint_zinc", "Neutral Zinc") },
-                                                        { id: 1, name: root.tr("settings.tint_slate", "Cool Slate") },
-                                                        { id: 2, name: root.tr("settings.tint_mauve", "Mauve") }
-                                                    ]
-                                                    delegate: Rectangle {
-                                                        height: 26
-                                                        width: tintLabelDark.width + 20
-                                                        radius: 5
-                                                        clip: true
-                                                        color: root.bgTonePreset === modelData.id ? root.lobeAccent : root.bgCard
-                                                        border.color: root.bgTonePreset === modelData.id ? root.lobeAccent : root.borderSubtle
-
-                                                        Rectangle {
-                                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                                            anchors.leftMargin: 3; anchors.rightMargin: 3
-                                                            color: root.borderSpecular
-                                                        }
-
-                                                        Text {
-                                                            id: tintLabelDark
-                                                            anchors.centerIn: parent
-                                                            text: modelData.name
-                                                            color: root.bgTonePreset === modelData.id ? "#ffffff" : root.textPrimary
-                                                            font.family: root.fontMain
-                                                            font.pixelSize: 11
-                                                            font.weight: root.bgTonePreset === modelData.id ? Font.DemiBold : Font.Normal
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: root.bgTonePreset = modelData.id
-                                                        }
-                                                    }
-                                                }
+                                            Layout.fillWidth: true
+                                            Text {
+                                                text: root.isDarkTheme?root.tr("settings.background_brightness","Background brightness"):root.tr("settings.background_softness","Background softness")
+                                                color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11
                                             }
-
-                                            // Light Theme Tints
-                                            RowLayout {
-                                                visible: !root.isDarkTheme
-                                                spacing: 6
-                                                Repeater {
-                                                    model: [
-                                                        { id: 0, name: root.tr("settings.tint_zinc", "Neutral Zinc") },
-                                                        { id: 1, name: root.tr("settings.tint_slate", "Cool Slate") },
-                                                        { id: 2, name: root.tr("settings.tint_paper", "Warm Paper") },
-                                                        { id: 3, name: root.tr("settings.tint_snow", "Pure Snow") }
-                                                    ]
-                                                    delegate: Rectangle {
-                                                        height: 26
-                                                        width: tintLabelLight.width + 20
-                                                        radius: 5
-                                                        clip: true
-                                                        color: root.lightTonePreset === modelData.id ? root.lobeAccent : root.bgCard
-                                                        border.color: root.lightTonePreset === modelData.id ? root.lobeAccent : root.borderSubtle
-
-                                                        Rectangle {
-                                                            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                                            anchors.leftMargin: 3; anchors.rightMargin: 3
-                                                            color: root.borderSpecular
-                                                        }
-
-                                                        Text {
-                                                            id: tintLabelLight
-                                                            anchors.centerIn: parent
-                                                            text: modelData.name
-                                                            color: root.lightTonePreset === modelData.id ? "#ffffff" : root.textPrimary
-                                                            font.family: root.fontMain
-                                                            font.pixelSize: 11
-                                                            font.weight: root.lightTonePreset === modelData.id ? Font.DemiBold : Font.Normal
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: root.lightTonePreset = modelData.id
-                                                        }
-                                                    }
-                                                }
+                                            Item { Layout.fillWidth: true }
+                                            Text {
+                                                text: root.backgroundToneName==="pure"?(root.isDarkTheme?"#000000":"#ffffff"):Math.round((root.isDarkTheme?root.bgDarkness:root.lightBrightness)*100)+"%"
+                                                color: root.textMuted; font.family: root.fontMono; font.pixelSize: 11
                                             }
+                                        }
+                                        LobeSlider {
+                                            Layout.fillWidth: true
+                                            enabled: root.backgroundToneName!=="pure"
+                                            visible: root.isDarkTheme
+                                            from: 0; to: .38; stepSize: .01; value: root.bgDarkness
+                                            onMoved: root.bgDarkness=value
+                                        }
+                                        LobeSlider {
+                                            Layout.fillWidth: true
+                                            enabled: root.backgroundToneName!=="pure"
+                                            visible: !root.isDarkTheme
+                                            from: 0; to: .32; stepSize: .01; value: root.lightBrightness
+                                            onMoved: root.lightBrightness=value
                                         }
                                     }
-
                                     Rectangle { Layout.fillWidth: true; height: 1; color: root.borderSubtle }
 
                                     // GLASSMORHISM ADVANCED CONTROLS
@@ -5592,12 +5323,16 @@ ApplicationWindow {
                                                     color: root.previewDisplayMode === modelData.mode ? root.lobeAccent : root.bgCard
                                                     border.color: root.previewDisplayMode === modelData.mode ? root.lobeAccent : root.borderSubtle
                                                     border.width: 1
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
+                                                    SurfaceSheen {
+                                                        anchors.fill: parent
+                                                        cornerRadius: parent.radius || 0
+                                                        highlightColor: root.borderSpecular
+                                                    }
                                                     Text {
                                                          id: modeLabel
                                                          anchors.centerIn: parent
                                                          text: modelData.name
-                                                         color: root.previewDisplayMode === modelData.mode ? "#ffffff" : root.textPrimary
+                                                         color: root.previewDisplayMode === modelData.mode ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                                          font.family: root.fontMain
                                                          font.pixelSize: 11
                                                          font.weight: root.previewDisplayMode === modelData.mode ? Font.DemiBold : Font.Normal
@@ -5637,12 +5372,16 @@ ApplicationWindow {
                                                     clip: true
                                                     color: root.previewSizePreset === modelData.preset ? root.lobeAccent : root.bgCard
                                                     border.color: root.previewSizePreset === modelData.preset ? root.lobeAccent : root.borderSubtle
-                                                    Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
+                                                    SurfaceSheen {
+                                                        anchors.fill: parent
+                                                        cornerRadius: parent.radius || 0
+                                                        highlightColor: root.borderSpecular
+                                                    }
                                                     Text {
                                                         id: presetLabel
                                                         anchors.centerIn: parent
                                                         text: modelData.name
-                                                        color: root.previewSizePreset === modelData.preset ? "#ffffff" : root.textPrimary
+                                                        color: root.previewSizePreset === modelData.preset ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                                         font.family: root.fontMain
                                                         font.pixelSize: 11
                                                         font.weight: root.previewSizePreset === modelData.preset ? Font.DemiBold : Font.Normal
@@ -5698,12 +5437,16 @@ ApplicationWindow {
                                                 clip: true
                                                 color: root.previewFitMode === 0 ? root.lobeAccent : root.bgCard
                                                 border.color: root.previewFitMode === 0 ? root.lobeAccent : root.borderSubtle
-                                                Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
+                                                SurfaceSheen {
+                                                    anchors.fill: parent
+                                                    cornerRadius: parent.radius || 0
+                                                    highlightColor: root.borderSpecular
+                                                }
                                                 Text {
                                                     id: fitPreserveText
                                                     anchors.centerIn: parent
                                                     text: root.tr("settings.fit_preserve", "Aspect Fit (Preserve)")
-                                                    color: root.previewFitMode === 0 ? "#ffffff" : root.textPrimary
+                                                    color: root.previewFitMode === 0 ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                                     font.family: root.fontMain
                                                     font.pixelSize: 11
                                                 }
@@ -5721,12 +5464,16 @@ ApplicationWindow {
                                                 clip: true
                                                 color: root.previewFitMode === 1 ? root.lobeAccent : root.bgCard
                                                 border.color: root.previewFitMode === 1 ? root.lobeAccent : root.borderSubtle
-                                                Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; anchors.leftMargin: 3; anchors.rightMargin: 3; color: root.borderSpecular }
+                                                SurfaceSheen {
+                                                    anchors.fill: parent
+                                                    cornerRadius: parent.radius || 0
+                                                    highlightColor: root.borderSpecular
+                                                }
                                                 Text {
                                                     id: fillCropText
                                                     anchors.centerIn: parent
                                                     text: root.tr("settings.fill_crop", "Aspect Fill (Crop)")
-                                                    color: root.previewFitMode === 1 ? "#ffffff" : root.textPrimary
+                                                    color: root.previewFitMode === 1 ? root.getAccentContrastColor(root.lobeAccent) : root.textPrimary
                                                     font.family: root.fontMain
                                                     font.pixelSize: 11
                                                 }
@@ -5965,10 +5712,10 @@ ApplicationWindow {
                                                 border.color: isSelected ? root.lobeAccent : (langCardMouse.containsMouse ? root.borderSpecular : root.borderSubtle)
                                                 border.width: isSelected ? 1.5 : 1
 
-                                                Rectangle {
-                                                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                                                    anchors.leftMargin: 4; anchors.rightMargin: 4
-                                                    color: root.borderSpecular
+                                                SurfaceSheen {
+                                                    anchors.fill: parent
+                                                    cornerRadius: parent.radius || 0
+                                                    highlightColor: root.borderSpecular
                                                     visible: !isSelected
                                                 }
 
@@ -6064,7 +5811,7 @@ ApplicationWindow {
                                             Text {
                                                 id: vText
                                                 anchors.centerIn: parent
-                                                text: "v1.2"
+                                                text: "v1.2.0"
                                                 color: root.lobeAccent
                                                 font.family: root.fontMono
                                                 font.pixelSize: 10
@@ -6092,13 +5839,14 @@ ApplicationWindow {
                                     }
 
                                     ColumnLayout {
+                                        Layout.fillWidth: true
                                         spacing: 5
-                                        Text { text: root.tr("settings.tech_core", "• Core: C++20, Qt 6.8 (64-bit MinGW)"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
-                                        Text { text: root.tr("settings.tech_parser", "• Metadata Parser: Zero-allocation streaming parser for PNG chunks and JPEG Exif"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
-                                        Text { text: root.tr("settings.tech_formats", "• Formats: Automatic1111, ComfyUI (node workflows), Fooocus, NovelAI"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
-                                        Text { text: root.tr("settings.tech_cache", "• Indexing: Local on-disk binary metadata cache for instant startup"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
-                                        Text { text: root.tr("settings.tech_autocomplete", "• Autocomplete: Danbooru CSV prefix & substring matching (15 suggestions)"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
-                                        Text { text: root.tr("settings.tech_grouping", "• Grouping: Folder, Checkpoint / Model, Creation Date"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.tech_core", "• Core: C++20, Qt 6.8 (64-bit MinGW)"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.tech_parser", "• Metadata: PNG text chunks, ComfyUI graphs and companion .txt files"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.tech_formats", "• Generation data: Automatic1111 parameters, ComfyUI graphs, NovelAI JSON"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.tech_cache", "• Indexing: Local on-disk binary metadata cache for instant startup"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.tech_autocomplete", "• Autocomplete: Danbooru CSV prefix & substring matching (15 suggestions)"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.tech_grouping", "• Grouping: Folder, Checkpoint / Model, Creation Date"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                     }
 
                                     Rectangle { Layout.fillWidth: true; height: 1; color: root.borderSubtle }
@@ -6119,69 +5867,81 @@ ApplicationWindow {
                                         Layout.fillWidth: true
 
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Space / F"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_fullscreen", "Fullscreen preview"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_fullscreen", "Fullscreen preview"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Esc"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_close", "Close / Deselect / Clear"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_close", "Close / Deselect / Clear"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
 
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "← / →"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_prev_next", "Previous / Next image"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_prev_next", "Previous / Next image"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Ctrl + A"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_select_all", "Select all visible"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_select_all", "Select all visible"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
 
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
-                                            Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Shift+Click"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_range_select", "Range selection"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Rectangle { width: 150; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: root.tr("settings.key_shift_click", "Shift+Click"); color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_range_select", "Range selection"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
-                                            Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Ctrl+Click"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_toggle_select", "Toggle individual selection"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Rectangle { width: 150; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: root.tr("settings.key_ctrl_click", "Ctrl+Click"); color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_toggle_select", "Toggle individual selection"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
 
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Delete"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_delete", "Send to Recycle Bin"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_delete", "Send to Recycle Bin"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "B / I"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_sidebars", "Toggle Left / Right sidebars"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_sidebars", "Toggle Left / Right sidebars"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
 
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Ctrl + ,"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_settings", "Settings dialog"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_settings", "Settings dialog"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "+ / - / 0"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_zoom", "Zoom in / out / reset"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_zoom", "Zoom in / out / reset"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
 
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
                                             Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "P"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_prompt_sheet", "Toggle metadata sheet"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_prompt_sheet", "Toggle metadata sheet"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                         RowLayout {
+                                            Layout.fillWidth: true
                                             spacing: 8
-                                            Rectangle { width: 70; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: "Hold Mouse"; color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
-                                            Text { text: root.tr("settings.sc_hover_preview", "Open hover preview"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
+                                            Rectangle { width: 150; height: 20; radius: 4; color: root.bgCard; border.color: root.borderSubtle; border.width: 1; Text { anchors.centerIn: parent; text: root.tr("settings.key_hold_mouse", "Hold Mouse"); color: root.textPrimary; font.family: root.fontMono; font.pixelSize: 10 } }
+                                            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: root.tr("settings.sc_hover_preview", "Open hover preview"); color: root.textSecondary; font.family: root.fontMain; font.pixelSize: 11 }
                                         }
                                     }
                                 }
@@ -6311,9 +6071,10 @@ ApplicationWindow {
             border.color: root.borderSubtle
             border.width: 1
 
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
 
             RowLayout {
@@ -6480,10 +6241,10 @@ ApplicationWindow {
             border.color: root.borderSubtle
             border.width: 1
 
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 12; anchors.rightMargin: 12
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
 
             RowLayout {
@@ -6585,10 +6346,10 @@ ApplicationWindow {
             border.color: root.borderSubtle
             border.width: 1
 
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1
-                anchors.leftMargin: 4; anchors.rightMargin: 4
-                color: root.borderSpecular
+            SurfaceSheen {
+                anchors.fill: parent
+                cornerRadius: parent.radius || 0
+                highlightColor: root.borderSpecular
             }
 
             ColumnLayout {

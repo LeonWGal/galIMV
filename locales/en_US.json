@@ -42,14 +42,17 @@
     "all_folders": "All Folders",
     "frequent_tags": "Frequent tags:",
     "exclude_tags": "Exclude",
-    "exclude_placeholder": "e.g. text, watermark..."
+    "exclude_placeholder": "e.g. text, watermark...",
+    "limit_label": "Top %1",
+    "limit_hint": "Change tag limit: 40 / 80 / 120 / 200"
   },
   "gallery": {
     "empty_title": "No Images Found",
     "empty_desc": "Open a folder with images or AI generations to get started",
     "select_group": "Select Group",
     "deselect_group": "Deselect Group",
-    "items": "items"
+    "items": "items",
+    "click_to_expand": "Click to expand"
   },
   "context": {
     "open_fullscreen": "Open Fullscreen",
@@ -76,7 +79,7 @@
     "parameters": "Generation Parameters",
     "tags": "Extracted Tags",
     "no_selection": "No Image Selected",
-    "no_selection_hint": "Click an image to inspect Stable Diffusion parameters, prompt, and tags.",
+    "no_selection_hint": "Select an image to inspect its prompt, generation settings, and tags.",
     "library_stats": "LIBRARY STATS",
     "total_images": "Total Images:",
     "matching_view": "Matching View:",
@@ -103,7 +106,8 @@
     "fit": "Fit",
     "fill": "Fill",
     "none": "None",
-    "ok": "OK"
+    "ok": "OK",
+    "error": "Operation failed"
   },
   "status": {
     "images": "images",
@@ -132,7 +136,7 @@
     "theme_mode": "Theme Mode",
     "dark": "Dark Theme",
     "light": "Light Theme",
-    "accent_color_title": "Accent Color (Lobe Theme Neo)",
+    "accent_color_title": "Accent color (Lobe)",
     "selected_accent": "Selected Accent:",
     "bg_tone_title": "Background Tone & Grayness",
     "presets": "Presets:",
@@ -198,11 +202,11 @@
     "autodetect_csv": "Auto-Detect Forge-Neo CSV",
     "csv_desc": "Tags from CSV classify Characters, Artists, Series, and Meta styles in the left sidebar.",
     "about_title": "galIMV",
-    "about_subtitle": "Local image viewer and Stable Diffusion generation metadata studio.",
+    "about_subtitle": "Local image viewer and generation metadata inspector.",
     "about_tech_specs": "TECHNICAL SPECIFICATIONS",
     "tech_core": "• Core: C++20, Qt 6.8 (64-bit MinGW)",
-    "tech_parser": "• Metadata Parser: Zero-allocation streaming parser for PNG chunks and JPEG Exif",
-    "tech_formats": "• Formats: Automatic1111, ComfyUI (node workflows), Fooocus, NovelAI",
+    "tech_parser": "• Metadata: PNG text chunks, ComfyUI graphs and companion .txt files",
+    "tech_formats": "• Generation data: Automatic1111 parameters, ComfyUI graphs, NovelAI JSON",
     "tech_cache": "• Indexing: Local on-disk binary metadata cache for instant startup",
     "tech_autocomplete": "• Autocomplete: Danbooru CSV prefix & substring matching (15 suggestions)",
     "tech_grouping": "• Grouping: Folder, Checkpoint / Model, Creation Date",
@@ -218,7 +222,17 @@
     "sc_settings": "Settings dialog",
     "sc_zoom": "Zoom in / out / reset",
     "sc_prompt_sheet": "Toggle metadata sheet",
-    "sc_hover_preview": "Open hover preview"
+    "sc_hover_preview": "Open hover preview",
+    "background_palette": "Background undertone",
+    "pure_black": "Pure black",
+    "pure_white": "Pure white",
+    "selected_undertone": "Selected undertone:",
+    "paired_undertone": "A coordinated material pair connects the dark and light themes.",
+    "background_brightness": "Background brightness",
+    "background_softness": "Background softness",
+    "key_shift_click": "Shift+Click",
+    "key_ctrl_click": "Ctrl+Click",
+    "key_hold_mouse": "Hold mouse"
   },
   "ux": {
     "library": "Library",
@@ -241,6 +255,87 @@
     "aurora_motion": "Slow aurora movement",
     "select_image": "Select image",
     "select_group": "Select group",
-    "deselect_group": "Clear group selection"
+    "deselect_group": "Clear group selection",
+    "inspect_select": "Select an image",
+    "inspect_start": "Get to know your images",
+    "inspect_select_hint": "Select a thumbnail to see its preview, prompt, and generation settings.",
+    "inspect_start_hint": "Open a folder to explore your images and the details behind each generation.",
+    "inspect_first": "Inspect first image",
+    "inspect_details": "Image details, at a glance",
+    "inspect_preview": "Preview & file",
+    "inspect_preview_hint": "Dimensions, size and location",
+    "inspect_prompt": "Prompt and generation",
+    "inspect_prompt_hint": "Prompt, model and saved parameters",
+    "inspect_tags": "Tags",
+    "inspect_tags_hint": "Explore and copy image tags",
+    "inspect_visible": "In this view",
+    "inspect_total": "In the library",
+    "inspect_fullscreen": "Open selected image",
+    "inspect_multi": "Select several images",
+    "library_status": "Library status",
+    "stop_scan": "Stop scanning",
+    "open_folder": "Open folder",
+    "updating_short": "Updating…"
+  },
+  "undertones": {
+    "zinc": {
+      "dark": "Zinc",
+      "light": "Soft zinc"
+    },
+    "charcoal": {
+      "dark": "Charcoal",
+      "light": "Faded paper"
+    },
+    "graphite": {
+      "dark": "Graphite",
+      "light": "Matte chalk"
+    },
+    "slate": {
+      "dark": "Cool slate",
+      "light": "Cool alabaster"
+    },
+    "basalt": {
+      "dark": "Basalt",
+      "light": "Light stone"
+    },
+    "obsidian": {
+      "dark": "Obsidian",
+      "light": "Porcelain"
+    },
+    "warm-stone": {
+      "dark": "Warm stone",
+      "light": "Ivory"
+    },
+    "pure": {
+      "dark": "Pure black",
+      "light": "Pure white"
+    }
+  },
+  "backend": {
+    "message_1": "Could not save the metadata cache.",
+    "message_2": "Folder not found: %1",
+    "message_3": "Scanning directory tree...",
+    "message_4": "Library indexed: %1 items",
+    "message_5": "A file with this name already exists: %1",
+    "message_6": "Could not move %1 to %2",
+    "message_7": "Could not move the associated text file: %1. The image was restored.",
+    "message_8": "Could not move %1 or restore the image. The image is now at %2.",
+    "message_9": "Could not move the image to the recycle bin: %1",
+    "message_10": "The image was moved to the recycle bin, but its text file remains at %1",
+    "message_11": "Could not prepare deletion of %1",
+    "message_12": "Could not delete %1",
+    "message_13": "Could not delete the associated text file: %1",
+    "message_14": "Deletion failed. The original image remains at %1",
+    "message_15": "The image was deleted, but the associated text file could not be deleted: %1",
+    "message_16": "Deletion failed; the original files were restored: %1",
+    "message_17": "Deletion failed. Some original files remain in %1",
+    "message_18": "The selected image is no longer in the library.",
+    "message_19": "The selected image or destination is no longer available.",
+    "message_20": "Could not create destination folder: %1",
+    "message_21": "Indexing: %1 / %2 files (%3%) - %4",
+    "message_22": "Root folder",
+    "tag_load_failed": "Could not load the tag dictionary.",
+    "tag_busy": "A tag dictionary is already being loaded.",
+    "tag_missing": "Tag dictionary not found: %1"
   }
 }
