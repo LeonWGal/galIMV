@@ -22,9 +22,9 @@ Explore AI image collections and read the prompts and generation metadata stored
 
 ## Start with a collection
 
-Download the [Windows x64 release](https://github.com/LeonWGal/galIMV/releases/tag/v1.2.0). Choose the installer or extract the portable ZIP. For source code, see [Build from source](#build-from-source).
+Download the [Windows x64 release](https://github.com/LeonWGal/galIMV/releases/tag/v1.2.0). Run the single-file portable EXE, or extract the portable ZIP. For source code, see [Build from source](#build-from-source).
 
-1. Open `bin/galIMV.exe` from the prepared build, or start `run.bat` from the project folder.
+1. Run `galIMV-1.2.0-Windows-x64-Portable.exe`, or extract the ZIP and open `galIMV.exe` from its `galIMV` folder.
 2. Select **Open** (`Ctrl+O`) and choose an image folder. The gallery scans it in the background.
 3. Select a thumbnail. Its preview, prompt, and available generation details appear in the inspector.
 

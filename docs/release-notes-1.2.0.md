@@ -6,7 +6,7 @@ Browse image collections with a unified interface, improved glass surfaces, and 
 
 ## Downloads
 
-- **galIMV-1.2.0-Windows-x64-Setup.exe** — installs the application and its Qt runtime. Shortcuts and optional image associations are available in the installer.
+- **galIMV-1.2.0-Windows-x64-Portable.exe** — one executable with Qt included. Run it directly; the runtime is extracted to a temporary folder and cleaned up after normal exit.
 - **galIMV-1.2.0-Windows-x64-Portable.zip** — extract the whole archive and run `galIMV.exe` in the `galIMV` folder. Keep the `bin`, `qml`, and plugin folders together.
 - **SHA256SUMS.txt** — SHA-256 checksums for the downloadable files.
 
@@ -32,4 +32,6 @@ Browse image collections with a unified interface, improved glass surfaces, and 
 
 ## Проверка и запуск
 
-Оба набора CTest и переключение 20 языков проходят. Для установки запустите Setup.exe. Для portable-версии распакуйте ZIP целиком и откройте `galIMV.exe`; Python и Qt устанавливать отдельно не требуется.
+Оба набора CTest и переключение 20 языков проходят. Запустите один `galIMV-1.2.0-Windows-x64-Portable.exe` либо распакуйте ZIP целиком и откройте `galIMV.exe`. Устанавливать Python и Qt отдельно не требуется.
+
+Packaging update: the installer has been replaced by a single-file portable EXE. The native application remains version 1.2.0.
